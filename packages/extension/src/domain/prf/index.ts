@@ -1,3 +1,4 @@
+export { decryptWithKey, encryptWithKey, prfKeyToPassword } from './crypto';
 export { detectPrfSupport } from './detect';
 export type { PrfSupportResult } from './detect';
 export { createPasskey, derivePrfKey } from './service';
