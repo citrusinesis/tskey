@@ -18,9 +18,13 @@ export function useSettings() {
   });
 
   useEffect(() => {
-    getSettings().then((settings) => {
-      setState((prev) => ({ ...prev, settings, isLoading: false }));
-    });
+    getSettings()
+      .then((settings) => {
+        setState((prev) => ({ ...prev, settings, isLoading: false }));
+      })
+      .catch(() => {
+        setState((prev) => ({ ...prev, isLoading: false }));
+      });
   }, []);
 
   const updateSettings = useCallback(async (updates: Partial<StorageSettings>) => {
