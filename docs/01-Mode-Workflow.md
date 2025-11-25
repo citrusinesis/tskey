@@ -1,129 +1,47 @@
-# Password Generation Mode Workflow
+# Setup & Seed Workflow
 
 ## Overview
 
-TSKey supports two password generation modes, compatible with gokey CLI:
+TSKey uses **seed-based** password generation for maximum security:
 
-| Mode | Algorithm | gokey CLI equivalent |
-|------|-----------|---------------------|
-| **Password-only** | PBKDF2(masterPassword, realm) | `gokey -p "master" -r realm` |
-| **Seed** | HKDF(seed, realm) | `gokey -p "master" -s keyfile -r realm` |
+```
+Password = CharsetMap(AES-CTR(HKDF(seed, realm)))
+```
 
-**Important**: The two modes generate **different passwords** for the same realm.
+| Component | Description |
+|-----------|-------------|
+| **Seed** | 256-bit random bytes (generated once at setup) |
+| **Unlock Key** | Master password or PRF-derived key |
+| **Realm** | Site identifier (e.g., "github.com") |
+
+## Unlock Methods
+
+TSKey supports three unlock methods:
+
+| Mode | Description | CLI Compatible |
+|------|-------------|----------------|
+| `password` | Master password input | ✅ |
+| `prf` | Biometric (TouchID/Windows Hello) | ❌ |
+| `hybrid` | Biometric + stored password | ✅ |
+
+> Details: [03-Biometric-Authentication.md](./03-Biometric-Authentication.md)
 
 ---
 
-## Mode Selection (Initial Setup Only)
-
-Mode is chosen **once** during initial setup and **cannot be changed** afterwards.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    INITIAL SETUP                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Welcome to TSKey!                                          │
-│  Choose how to generate your passwords:                     │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ ◉ Seed Mode (Recommended)                           │   │
-│  │                                                      │   │
-│  │   • 256-bit random seed for higher entropy           │   │
-│  │   • Seed encrypted with your master password         │   │
-│  │   • Export seed file for backup & gokey CLI          │   │
-│  │   • Requires seed backup for recovery                │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ ○ Password-only Mode                                 │   │
-│  │                                                      │   │
-│  │   • Master password directly derives keys            │   │
-│  │   • No backup file needed                            │   │
-│  │   • Simpler, but password strength matters more      │   │
-│  │   • Compatible with basic gokey CLI usage            │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  Master Password: [____________________]                    │
-│  Confirm Password: [____________________]                   │
-│                                                             │
-│  [Continue]                                                 │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Workflow by Mode
-
-### Password-only Mode
+## Initial Setup Workflow
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    PASSWORD-ONLY WORKFLOW                     │
+│                       INITIAL SETUP                           │
 └──────────────────────────────────────────────────────────────┘
 
-[Initial Setup]
+[Fresh Install]
     │
     ▼
 ┌──────────────────┐
 │ Enter master     │
 │ password         │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Store mode:      │
-│ "password-only"  │──────────────────────────────────┐
-│ in storage       │                                  │
-└────────┬─────────┘                                  │
-         │                                            │
-         ▼                                            │
-    [Unlocked]                                        │
-         │                                            │
-         ▼                                            │
-┌──────────────────┐                                  │
-│ Generate password│                                  │
-│                  │                                  │
-│ PBKDF2(master,   │                                  │
-│        realm)    │                                  │
-│ → AES-CTR        │                                  │
-└──────────────────┘                                  │
-                                                      │
-[Returning User] ─────────────────────────────────────┘
-    │
-    ▼
-┌──────────────────┐
-│ Enter master     │
-│ password         │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Mode check:      │
-│ "password-only"  │
-│ No seed decrypt  │
-└────────┬─────────┘
-         │
-         ▼
-    [Unlocked]
-
-gokey CLI compatible:
-$ gokey -p "masterPassword" -r github.com
-```
-
-### Seed Mode
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                       SEED WORKFLOW                           │
-└──────────────────────────────────────────────────────────────┘
-
-[Initial Setup]
-    │
-    ▼
-┌──────────────────┐
-│ Enter master     │
-│ password         │
+│ (+ confirm)      │
 └────────┬─────────┘
          │
          ▼
@@ -142,33 +60,58 @@ $ gokey -p "masterPassword" -r github.com
          │
          ▼
 ┌──────────────────┐
-│ Store:           │
-│ - mode: "seed"   │
-│ - encryptedSeed  │──────────────────────────────────┐
-└────────┬─────────┘                                  │
-         │                                            │
-         ▼                                            │
-┌──────────────────┐                                  │
-│ ⚠️ IMPORTANT:    │                                  │
-│ Export seed file │                                  │
-│ for backup!      │                                  │
-│                  │                                  │
-│ [Export Now]     │                                  │
-│ [Remind Later]   │                                  │
-└────────┬─────────┘                                  │
-         │                                            │
-         ▼                                            │
-    [Unlocked]                                        │
-         │                                            │
-         ▼                                            │
-┌──────────────────┐                                  │
-│ Generate password│                                  │
-│                  │                                  │
-│ HKDF(seed, realm)│                                  │
-│ → AES-CTR        │                                  │
-└──────────────────┘                                  │
-                                                      │
-[Returning User] ─────────────────────────────────────┘
+│ Store encrypted  │
+│ seed in storage  │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ ⚠️ IMPORTANT:    │
+│ Export seed file │
+│ for backup!      │
+│                  │
+│ [Export Now]     │
+│ [Remind Later]   │
+└────────┬─────────┘
+         │
+         ▼
+    [Unlocked]
+```
+
+### Setup UI
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    WELCOME TO TSKEY                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Create your master password to get started.                │
+│                                                             │
+│  Your master password:                                      │
+│  • Encrypts your 256-bit seed                               │
+│  • Is NEVER stored anywhere                                 │
+│  • Cannot be recovered if forgotten                         │
+│                                                             │
+│  Master Password: [____________________]                    │
+│  Confirm Password: [____________________]                   │
+│                                                             │
+│  ⚠️ Use a strong password (16+ characters recommended)      │
+│                                                             │
+│  [Create & Generate Seed]                                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Returning User Workflow
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    RETURNING USER                             │
+└──────────────────────────────────────────────────────────────┘
+
+[Extension locked]
     │
     ▼
 ┌──────────────────┐
@@ -183,24 +126,46 @@ $ gokey -p "masterPassword" -r github.com
 │ (AES-GCM)        │
 └────────┬─────────┘
          │
-         ▼
-    [Unlocked]
+    ┌────┴────┐
+    │         │
+    ▼         ▼
+ Success    Fail
+    │         │
+    ▼         ▼
+[Unlocked]  [Show error]
+            "Wrong password"
+```
 
-gokey CLI compatible:
-$ gokey -p "masterPassword" -s exported.key -r github.com
+### Unlock UI
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       TSKEY                                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Enter your master password to unlock.                      │
+│                                                             │
+│  Master Password: [____________________]                    │
+│                                                             │
+│  [Unlock]                                                   │
+│                                                             │
+│  ─────────────────────────────────────                      │
+│  Lost access? [Import seed file]                            │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Seed Export/Import
 
-### Export (Required for Seed Mode)
+### Export (Required for Backup)
 
-Seed file format must be compatible with gokey CLI.
+Seed file is essential for recovery. Without it, passwords cannot be regenerated.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    SEED EXPORT                              │
+│                    SEED EXPORT                               │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  Export your seed file for:                                 │
@@ -210,40 +175,37 @@ Seed file format must be compatible with gokey CLI.
 │  ⚠️ Keep this file secure! Anyone with access can           │
 │     generate your passwords (with your master password).    │
 │                                                             │
-│  File format: [gokey-compatible ▼]                          │
-│                                                             │
 │  [Export Seed File]                                         │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Export format**: Raw encrypted seed bytes (gokey `.key` file format)
+**Export format**: Raw 256 bytes (gokey `.key` file format)
 
-```typescript
-// Encrypted seed structure (272 bytes total)
-// - Nonce: 12 bytes (from seed[0:12])
-// - Ciphertext: 244 bytes (seed[12:256] encrypted)
-// - Auth tag: 16 bytes (AES-GCM tag)
-```
+The exported seed is the raw decrypted seed, NOT the encrypted version.
+User must protect this file themselves (store in encrypted location).
 
 ### Import (For Recovery)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    SEED IMPORT                              │
+│                    SEED IMPORT                               │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  Restore from exported seed file:                           │
 │                                                             │
 │  [Choose File: ____________] [Browse]                       │
 │                                                             │
-│  Master Password: [____________________]                    │
-│  (Same password used when seed was created)                 │
+│  New Master Password: [____________________]                │
+│  (Can be different from original)                           │
 │                                                             │
-│  [Import & Unlock]                                          │
+│  [Import & Setup]                                           │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Note**: When importing, user can set a NEW master password. The seed itself
+doesn't change, so all generated passwords remain the same.
 
 ---
 
@@ -251,17 +213,28 @@ Seed file format must be compatible with gokey CLI.
 
 ```typescript
 interface ExtensionStorage {
-  // Mode selection (set once, never changes)
-  mode: 'seed' | 'password-only';
+  // Encrypted seed (AES-GCM encrypted, base64 encoded)
+  encryptedSeed?: string;
 
-  // Only present in seed mode
-  encryptedSeed?: string;  // base64 encoded
-
-  // Reminder for seed backup
+  // Reminder flag for seed backup
   seedExported?: boolean;
 
-  // Other settings...
+  // Site-specific configurations
+  sites: Record<string, SiteConfig>;
+
+  // User settings
   settings: StorageSettings;
+}
+
+interface SiteConfig {
+  realm: string;
+  version: number;  // For password regeneration
+  // spec: PasswordSpec;  // Future: custom spec per site
+}
+
+interface StorageSettings {
+  autoLockMinutes: number;
+  autoFillEnabled: boolean;
 }
 ```
 
@@ -281,55 +254,60 @@ interface ExtensionStorage {
                     │   SCREEN    │
                     └──────┬──────┘
                            │
-              ┌────────────┴────────────┐
-              │                         │
-              ▼                         ▼
-    ┌─────────────────┐      ┌─────────────────┐
-    │  PASSWORD-ONLY  │      │   SEED MODE     │
-    │     SETUP       │      │     SETUP       │
-    └────────┬────────┘      └────────┬────────┘
-             │                        │
-             │                        ▼
-             │               ┌─────────────────┐
-             │               │  SEED EXPORT    │
-             │               │   REMINDER      │
-             │               └────────┬────────┘
-             │                        │
-             ▼                        ▼
-    ┌─────────────────────────────────────────┐
-    │                 LOCKED                   │
-    └────────────────────┬────────────────────┘
-                         │
-                         │ unlock(password)
-                         ▼
+                           ▼
+                  ┌─────────────────┐
+                  │  GENERATE SEED  │
+                  │  & ENCRYPT      │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │  SEED EXPORT    │
+                  │   REMINDER      │
+                  └────────┬────────┘
+                           │
+                           ▼
     ┌─────────────────────────────────────────┐
     │                UNLOCKED                  │
     │                                          │
-    │  Password-only: masterPassword in memory │
-    │  Seed mode: masterPassword + seed        │
+    │  In memory: masterPassword + seed        │
     └────────────────────┬────────────────────┘
                          │
                          │ lock() / timeout
                          ▼
     ┌─────────────────────────────────────────┐
     │                 LOCKED                   │
+    │                                          │
+    │  In storage: encryptedSeed only          │
+    └────────────────────┬────────────────────┘
+                         │
+                         │ unlock(password)
+                         ▼
+    ┌─────────────────────────────────────────┐
+    │                UNLOCKED                  │
     └─────────────────────────────────────────┘
 ```
 
 ---
 
-## Message Types (Updated)
+## Message Types
 
 ```typescript
-// Setup messages
-type SetupPasswordOnlyMessage = {
-  type: 'SETUP_PASSWORD_ONLY';
-  payload: { password: string };
-};
-
+// Setup (first time)
 type SetupSeedMessage = {
   type: 'SETUP_SEED';
   payload: { password: string };
+};
+
+// Unlock (returning user)
+type UnlockMessage = {
+  type: 'UNLOCK';
+  payload: { password: string };
+};
+
+// Lock
+type LockMessage = {
+  type: 'LOCK';
 };
 
 // Export/Import
@@ -339,13 +317,17 @@ type ExportSeedMessage = {
 
 type ImportSeedMessage = {
   type: 'IMPORT_SEED';
-  payload: { encryptedSeed: Uint8Array; password: string };
+  payload: { seed: Uint8Array; password: string };
 };
 
-// Status includes mode
+// Status
+type GetStatusMessage = {
+  type: 'GET_STATUS';
+};
+
 type SessionStatus = {
   isUnlocked: boolean;
-  mode: 'seed' | 'password-only' | null;  // null = not setup
+  hasSeed: boolean;        // true if encrypted seed exists in storage
   seedExported?: boolean;  // reminder flag
 };
 ```
@@ -354,22 +336,35 @@ type SessionStatus = {
 
 ## UI Components
 
-### SetupPage (New)
+### SetupPage
 
-First-time setup with mode selection.
+First-time setup for new users.
 
 ```typescript
 type SetupPageProps = {
-  onSetupSeed: (password: string) => void;
-  onSetupPasswordOnly: (password: string) => void;
+  onSetup: (password: string) => void;
+  onImport: (seed: Uint8Array, password: string) => void;
   isLoading: boolean;
   error: string | null;
 };
 ```
 
-### SeedExportReminder (New)
+### UnlockPage
 
-Shown after seed setup and periodically until exported.
+For returning users with existing seed.
+
+```typescript
+type UnlockPageProps = {
+  onUnlock: (password: string) => void;
+  onImport: (seed: Uint8Array, password: string) => void;
+  isLoading: boolean;
+  error: string | null;
+};
+```
+
+### SeedExportReminder
+
+Shown after setup and periodically until exported.
 
 ```typescript
 type SeedExportReminderProps = {
@@ -378,46 +373,72 @@ type SeedExportReminderProps = {
 };
 ```
 
-### UnlockPage (Updated)
-
-Now only handles unlock, not setup.
-
-```typescript
-type UnlockPageProps = {
-  mode: 'seed' | 'password-only';
-  onUnlock: (password: string) => void;
-  onImportSeed: () => void;  // Recovery option
-  isLoading: boolean;
-  error: string | null;
-};
-```
-
 ---
 
 ## Implementation Checklist
 
-### Phase 1: Core Changes
-- [ ] Add `mode` to storage schema
-- [ ] Update `GET_STATUS` to return mode
-- [ ] Add `SETUP_PASSWORD_ONLY` message handler
-- [ ] Rename `SETUP_SEED` to be explicit about seed creation
+### Phase 1: Core ✅
+- [x] Implement `SETUP_SEED` - generate seed, encrypt, store
+- [x] Implement `UNLOCK` - decrypt seed from storage
+- [x] Implement `GET_STATUS` - return hasSeed, isUnlocked, seedExported
+- [x] Add `seedExported` flag to storage
 
-### Phase 2: Seed Export/Import
-- [ ] Implement `EXPORT_SEED` - returns encrypted seed bytes
-- [ ] Implement `IMPORT_SEED` - decrypt and store seed
-- [ ] Add `seedExported` flag to storage
+### Phase 2: Export/Import ✅
+- [x] Implement `EXPORT_SEED` message & handler
+- [x] Implement `IMPORT_SEED` message & handler
+- [x] Add export/import session service functions
+- [x] Create `SeedExportReminder` component
+- [x] File download UI (export)
+- [x] File upload UI (import from UnlockPage & SetupPage)
 
-### Phase 3: UI Updates
-- [ ] Create `SetupPage` with mode selection
-- [ ] Create `SeedExportReminder` component
-- [ ] Update `UnlockPage` (remove setup logic)
-- [ ] Update `App.tsx` routing logic
+### Phase 3: UI Separation ✅
+- [x] Create `SetupPage` component (separate from UnlockPage)
+- [x] Simplify `UnlockPage` (unlock only, add import option)
+- [x] Update `App.tsx` routing logic
 
-### Phase 4: Testing
-- [ ] Test password-only workflow end-to-end
-- [ ] Test seed workflow end-to-end
+### Phase 4: Storage & Versioning ✅
+- [x] Remove `useSeedMode` from storage (now seed-only)
+- [x] Add `sites` config with version field
+- [x] Implement `getEffectiveRealm()` for versioned realms
+
+### Phase 5: Testing
+- [ ] Test setup workflow end-to-end
+- [ ] Test unlock/lock cycle
 - [ ] Test seed export → gokey CLI compatibility
 - [ ] Test seed import from gokey-generated file
+
+---
+
+## Biometric Authentication Phases
+
+> Details: [03-Biometric-Authentication.md](./03-Biometric-Authentication.md)
+
+### Phase 6: Infrastructure
+- [ ] Define `unlockMethod` type (`password` | `prf` | `hybrid`)
+- [ ] Extend storage schema (prf config)
+- [ ] PRF support detection function (`detectPrfSupport`)
+- [ ] PRF key derivation utility (`derivePrfKey`)
+
+### Phase 7: PRF-only Mode
+- [ ] Passkey creation flow (`createPasskey`)
+- [ ] PRF-based seed encryption/decryption
+- [ ] PRF unlock service (`unlockWithPrf`)
+- [ ] PRF setup UI component
+
+### Phase 8: Mode Selection UI
+- [ ] First-run mode selection screen
+- [ ] PRF unsupported fallback UI
+- [ ] Mode-specific unlock screen branching
+- [ ] Mode change UI in settings
+
+### Phase 9: Cross-browser Support
+- [ ] Firefox PRF user handling
+- [ ] Seed import mode switch flow
+- [ ] Error messages and guidance UI
+
+### Phase 10: Hybrid Mode (Optional)
+- [ ] Password input + PRF encryption
+- [ ] CLI compatible mode support
 
 ---
 

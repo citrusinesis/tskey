@@ -2,35 +2,36 @@
 
 ## Overview
 
-Cloudflare의 [gokey](https://github.com/cloudflare/gokey) 알고리즘을 기반으로 한 **Vaultless 패스워드 매니저** 브라우저 익스텐션을 개발한다.
+A **vaultless password manager** browser extension based on Cloudflare's [gokey](https://github.com/cloudflare/gokey) algorithm.
 
 ### Core Concept
 
-- **Vaultless**: 패스워드를 저장하지 않음
-- **Deterministic**: `PBKDF2 + AES-CTR(masterPassword, realm)` → 항상 동일한 패스워드 생성
-- **Zero-sync**: 동기화할 vault가 없으므로 어디서든 동일한 패스워드 재생성 가능
-- **gokey Compatible**: gokey CLI와 동일한 출력 보장
+- **Vaultless**: Never stores passwords
+- **Seed-based**: 256-bit random seed + HKDF for realm-specific password generation
+- **Deterministic**: Same seed + realm always produces the same password
+- **Zero-sync**: Backup only the seed file to regenerate passwords anywhere
+- **gokey Compatible**: `gokey -p "master" -s seed.key -r realm`
 
 ### Project Goals
 
-1. 브라우저 익스텐션으로 gokey 기능 제공
-2. 자동 폼 감지 및 패스워드 자동입력
-3. 추후 네이티브 앱, 기기간 동기화 확장 고려
+1. Provide gokey functionality as a browser extension
+2. Auto-detect login forms and autofill passwords
+3. Consider future expansion to native apps and cross-device sync
 
 ---
 
 ## Tech Stack
 
-| Category        | Choice               | Reason                      |
-| --------------- | -------------------- | --------------------------- |
-| Language        | **TypeScript**       | 타입 안정성, 생태계         |
-| Extension       | **Manifest V3**      | Chrome 최신 표준, 보안 강화 |
-| Build           | **WXT**              | 빠른 HMR, MV3/Firefox 지원  |
-| UI              | **React + Tailwind** | 빠른 개발, 작은 번들        |
-| Crypto          | **Web Crypto API**   | 네이티브 PBKDF2, AES        |
-| Package Manager | **pnpm**             | 모노레포 지원, 빠름         |
-| Monorepo        | **pnpm workspace**   | 심플, 충분한 기능           |
-| Dev Environment | **Nix flake**        | 재현 가능한 개발 환경       |
+| Category        | Choice               | Reason                          |
+| --------------- | -------------------- | ------------------------------- |
+| Language        | **TypeScript**       | Type safety, ecosystem          |
+| Extension       | **Manifest V3**      | Chrome standard, enhanced security |
+| Build           | **WXT**              | Fast HMR, MV3/Firefox support   |
+| UI              | **React + Tailwind** | Rapid development, small bundle |
+| Crypto          | **Web Crypto API**   | Native HKDF, AES-CTR, AES-GCM   |
+| Package Manager | **pnpm**             | Monorepo support, fast          |
+| Monorepo        | **pnpm workspace**   | Simple, sufficient features     |
+| Dev Environment | **Nix flake**        | Reproducible dev environment    |
 
 ---
 
@@ -41,35 +42,35 @@ Cloudflare의 [gokey](https://github.com/cloudflare/gokey) 알고리즘을 기�
 ```
 gokey-ts/
 ├── packages/
-│   ├── core/                     # 암호화 핵심 로직 (순수 TS, 플랫폼 무관)
+│   ├── core/                     # Crypto core logic (pure TS, platform-agnostic)
 │   │   ├── src/
-│   │   │   ├── csprng.ts         # PBKDF2/HKDF + AES-CTR DRBG (gokey 호환)
-│   │   │   ├── seed.ts           # Seed 생성 & 암호화 (AES-GCM)
-│   │   │   ├── password.ts       # 패스워드 생성 로직
-│   │   │   ├── charset.ts        # 문자셋 정의 및 매핑
-│   │   │   ├── realm.ts          # URL → realm 추출 (tldts)
-│   │   │   ├── types.ts          # 공통 타입 정의
-│   │   │   └── index.ts          # public exports
+│   │   │   ├── csprng.ts         # PBKDF2/HKDF + AES-CTR DRBG (gokey compatible)
+│   │   │   ├── seed.ts           # Seed generation & encryption (AES-GCM)
+│   │   │   ├── password.ts       # Password generation logic
+│   │   │   ├── charset.ts        # Character set definition and mapping
+│   │   │   ├── realm.ts          # URL → realm extraction (tldts)
+│   │   │   ├── types.ts          # Common type definitions
+│   │   │   └── index.ts          # Public exports
 │   │   └── test/                 # Vitest tests (82 tests)
 │   │
-│   └── extension/                # 브라우저 익스텐션 (WXT)
+│   └── extension/                # Browser extension (WXT)
 │       └── src/
-│           ├── domain/           # 비즈니스 로직 + colocated UI
+│           ├── domain/           # Business logic + colocated UI
 │           │   ├── autofill/
 │           │   │   ├── detector.ts, filler.ts
-│           │   │   └── ui/dropdown.ts    # Shadow DOM 드롭다운
+│           │   │   └── ui/dropdown.ts    # Shadow DOM dropdown
 │           │   ├── generator/
-│           │   │   ├── service.ts        # @tskey/core 래퍼
+│           │   │   ├── service.ts        # @tskey/core wrapper
 │           │   │   └── ui/               # GeneratorPage, useGenerator
 │           │   ├── session/
-│           │   │   ├── store.ts          # in-memory 세션 상태
+│           │   │   ├── store.ts          # In-memory session state
 │           │   │   ├── service.ts        # unlock, setupSeed
 │           │   │   └── ui/               # UnlockPage, useSession
-│           │   ├── messaging/            # 메시지 프로토콜
-│           │   └── storage/              # chrome.storage (암호화된 seed)
-│           ├── components/       # 공유 React 컴포넌트
-│           ├── lib/              # 유틸리티 (clipboard)
-│           └── entrypoints/      # WXT 진입점 (thin layer)
+│           │   ├── messaging/            # Message protocol
+│           │   └── storage/              # chrome.storage (encrypted seed)
+│           ├── components/       # Shared React components
+│           ├── lib/              # Utilities (clipboard)
+│           └── entrypoints/      # WXT entry points (thin layer)
 │               ├── background.ts
 │               ├── content.ts
 │               ├── popup/
@@ -84,28 +85,28 @@ gokey-ts/
 
 ### Extension Architecture
 
-Feature-Sliced Design 패턴을 따라 도메인별로 비즈니스 로직과 UI를 함께 배치:
+Follows Feature-Sliced Design pattern with business logic and UI colocated by domain:
 
 ```
 domain/
-├── session/           # 세션 관리 도메인
-│   ├── store.ts       # 상태: masterPassword, decryptedSeed
-│   ├── service.ts     # 로직: unlockSession, setupSeed
+├── session/           # Session management domain
+│   ├── store.ts       # State: masterPassword, decryptedSeed
+│   ├── service.ts     # Logic: unlockSession, setupSeed
 │   └── ui/
 │       ├── UnlockPage.tsx
 │       └── useSession.ts
-├── generator/         # 패스워드 생성 도메인
-│   ├── service.ts     # 로직: generate(realm, seed?)
+├── generator/         # Password generation domain
+│   ├── service.ts     # Logic: generate(realm, seed?)
 │   └── ui/
 │       ├── GeneratorPage.tsx
 │       └── useGenerator.ts
 └── ...
 ```
 
-장점:
-- 기능별 응집도 ↑ (한 폴더에서 작업)
-- 도메인 경계 명확
-- 삭제/추가 용이 (폴더 단위)
+Benefits:
+- High feature cohesion (work in single folder)
+- Clear domain boundaries
+- Easy to add/remove (folder-based)
 
 ### Data Flow
 
@@ -139,9 +140,9 @@ domain/
 ┌────────────────────────────────────────────────────────────────────┐
 │                     CONTENT SCRIPT (Per Tab)                        │
 │                                                                     │
-│   - 로그인 폼 감지 (input[type="password"])                          │
-│   - 패스워드 필드에 자동입력                                           │
-│   - 마스터 패스워드에 직접 접근 불가 (보안)                             │
+│   - Detect login forms (input[type="password"])                     │
+│   - Autofill password fields                                        │
+│   - Cannot directly access master password (security)               │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -149,28 +150,26 @@ domain/
 
 ## Core Algorithm Implementation
 
-### gokey Password Generation (PBKDF2 + AES-CTR)
+### Seed-based Password Generation (HKDF + AES-CTR)
 
-**중요**: gokey는 HKDF가 아닌 PBKDF2 + AES-CTR을 사용한다.
-
-gokey의 패스워드 생성 로직 (https://github.com/cloudflare/gokey/blob/main/csprng.go):
+Password generation compatible with gokey's seed mode:
 
 ```
-1. key = PBKDF2-SHA256(
-     password: masterPassword,
-     salt: realm,              // password-only 모드
-     iterations: 4096,
-     keyLength: 32             // 256 bits for AES-256
-   )
+1. Initial setup (once)
+   seed = crypto.getRandomValues(256 bytes)
+   encryptedSeed = AES-GCM(seed, masterPassword)
+   // Store in chrome.storage
 
-2. cipher = AES-256-CTR(key, zeroIV)
-   // 16바이트 zero IV 사용
+2. On unlock
+   seed = AES-GCM-decrypt(encryptedSeed, masterPassword)
+   // Keep in memory
 
-3. bytes = cipher.encrypt(zeros)
-   // 0으로 채워진 버퍼를 암호화하여 deterministic random bytes 생성
-
-4. password = mapBytesToCharset(bytes, spec)
-   // rejection sampling으로 균등 분포 보장
+3. Password generation
+   salt = seed[0:12] + seed[-16:]   // 28 bytes
+   key = HKDF-SHA256(seed, salt, realm)
+   cipher = AES-256-CTR(key, zeroIV)
+   bytes = cipher.encrypt(zeros)
+   password = mapBytesToCharset(bytes, spec)
 ```
 
 ### TypeScript Implementation Spec
@@ -179,18 +178,41 @@ gokey의 패스워드 생성 로직 (https://github.com/cloudflare/gokey/blob/ma
 // packages/core/src/types.ts
 
 export interface PasswordSpec {
-  length: number; // 패스워드 길이 (default: 16)
-  upper: number; // 최소 대문자 수 (default: 1)
-  lower: number; // 최소 소문자 수 (default: 1)
-  digits: number; // 최소 숫자 수 (default: 1)
-  special: number; // 최소 특수문자 수 (default: 1)
-  allowedSpecial?: string; // 허용할 특수문자
+  length: number; // Password length (default: 16)
+  upper: number; // Minimum uppercase count (default: 1)
+  lower: number; // Minimum lowercase count (default: 1)
+  digits: number; // Minimum digit count (default: 1)
+  special: number; // Minimum special character count (default: 1)
 }
 
 export interface GenerateOptions {
-  masterPassword: string;
-  realm: string; // 보통 도메인 (e.g., "github.com")
+  seed: Uint8Array;  // 256-bit decrypted seed
+  realm: string;     // Domain (e.g., "github.com")
   spec?: Partial<PasswordSpec>;
+}
+```
+
+```typescript
+// packages/core/src/seed.ts
+
+export const SEED_LENGTH = 256;
+
+export function generateSeed(): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(SEED_LENGTH));
+}
+
+export async function encryptSeed(
+  seed: Uint8Array,
+  password: string
+): Promise<Uint8Array> {
+  // AES-GCM encryption with PBKDF2-derived key
+}
+
+export async function decryptSeed(
+  encrypted: Uint8Array,
+  password: string
+): Promise<Uint8Array> {
+  // AES-GCM decryption
 }
 ```
 
@@ -198,161 +220,42 @@ export interface GenerateOptions {
 // packages/core/src/csprng.ts
 
 /**
- * gokey 호환 CSPRNG (Cryptographically Secure Pseudo-Random Number Generator)
- * PBKDF2로 키 유도 후 AES-CTR로 deterministic random bytes 생성
+ * gokey seed mode compatible CSPRNG
+ * Derives key via HKDF then generates deterministic random bytes via AES-CTR
  */
-export async function createDRNG(
-  password: string,
+export async function createSeedDRNG(
+  seed: Uint8Array,
   realm: string
 ): Promise<{
   read: (length: number) => Promise<Uint8Array>;
 }> {
-  const encoder = new TextEncoder();
-  const salt = encoder.encode(realm);
+  // 1. salt = seed[0:12] + seed[-16:]
+  const salt = new Uint8Array(28);
+  salt.set(seed.slice(0, 12), 0);
+  salt.set(seed.slice(-16), 12);
 
-  // 1. PBKDF2로 AES 키 유도
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt: salt,
-      iterations: 4096,
-      hash: "SHA-256",
-    },
-    keyMaterial,
-    256
-  );
-
-  // 2. AES-CTR 키 생성
-  const aesKey = await crypto.subtle.importKey(
-    "raw",
-    derivedBits,
-    { name: "AES-CTR" },
+  // 2. Derive AES key via HKDF
+  const key = await crypto.subtle.deriveKey(
+    { name: "HKDF", hash: "SHA-256", salt, info: realm },
+    seedKey,
+    { name: "AES-CTR", length: 256 },
     false,
     ["encrypt"]
   );
 
-  let counter = 0;
-
+  // 3. Generate deterministic bytes via AES-CTR
   return {
     async read(length: number): Promise<Uint8Array> {
-      // 16바이트 counter (little-endian)
-      const counterBytes = new Uint8Array(16);
-      const view = new DataView(counterBytes.buffer);
-      view.setBigUint64(0, BigInt(counter), true);
-
       const zeros = new Uint8Array(length);
-      const encrypted = await crypto.subtle.encrypt(
-        { name: "AES-CTR", counter: counterBytes, length: 64 },
-        aesKey,
-        zeros
+      return new Uint8Array(
+        await crypto.subtle.encrypt(
+          { name: "AES-CTR", counter: zeroIV, length: 64 },
+          key,
+          zeros
+        )
       );
-
-      counter += Math.ceil(length / 16);
-      return new Uint8Array(encrypted);
     },
   };
-}
-```
-
-```typescript
-// packages/core/src/charset.ts
-
-// gokey 호환 문자셋 (94자)
-export const CHARSET =
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?";
-
-export const LOWER = "abcdefghijklmnopqrstuvwxyz";
-export const UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-export const DIGITS = "0123456789";
-export const SPECIAL = "`~!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?";
-
-/**
- * Rejection sampling으로 균등 분포 문자 선택
- */
-export function randChar(
-  bytes: Uint8Array,
-  offset: number,
-  charset: string
-): { char: string; consumed: number } {
-  const max = charset.length;
-  const buck = Math.floor(255 / max);
-  const rem = 255 % max;
-
-  let i = offset;
-  while (i < bytes.length) {
-    const b = bytes[i]!;
-    i++;
-    if (b >= 255 - rem) continue; // reject
-    return { char: charset[Math.floor(b / buck)]!, consumed: i - offset };
-  }
-  throw new Error("Not enough random bytes");
-}
-```
-
-```typescript
-// packages/core/src/password.ts
-
-import { createDRNG } from "./csprng";
-import { CHARSET, LOWER, UPPER, DIGITS, SPECIAL, randChar } from "./charset";
-import type { PasswordSpec, GenerateOptions } from "./types";
-
-export const DEFAULT_SPEC: PasswordSpec = {
-  length: 16,
-  upper: 1,
-  lower: 1,
-  digits: 1,
-  special: 1,
-};
-
-export async function generatePassword(
-  options: GenerateOptions
-): Promise<string> {
-  const spec = { ...DEFAULT_SPEC, ...options.spec };
-  const drng = await createDRNG(options.masterPassword, options.realm);
-
-  // gokey와 동일: compliance 만족할 때까지 재생성
-  while (true) {
-    const bytes = await drng.read(spec.length * 4); // 여유있게 할당
-    let password = "";
-    let offset = 0;
-
-    for (let i = 0; i < spec.length; i++) {
-      const result = randChar(bytes, offset, CHARSET);
-      password += result.char;
-      offset += result.consumed;
-    }
-
-    if (isCompliant(password, spec)) {
-      return password;
-    }
-  }
-}
-
-function isCompliant(password: string, spec: PasswordSpec): boolean {
-  let upper = 0,
-    lower = 0,
-    digits = 0,
-    special = 0;
-  for (const c of password) {
-    if (UPPER.includes(c)) upper++;
-    else if (LOWER.includes(c)) lower++;
-    else if (DIGITS.includes(c)) digits++;
-    else if (SPECIAL.includes(c)) special++;
-  }
-  return (
-    upper >= spec.upper &&
-    lower >= spec.lower &&
-    digits >= spec.digits &&
-    special >= spec.special
-  );
 }
 ```
 
@@ -364,34 +267,34 @@ function isCompliant(password: string, spec: PasswordSpec): boolean {
 
 ```typescript
 interface StorageSchema {
-  // 사이트별 설정
+  // Per-site settings
   sites: {
     [domain: string]: SiteConfig;
   };
 
-  // 전역 설정
+  // Global settings
   settings: GlobalSettings;
 }
 
 interface SiteConfig {
-  realm: string; // 커스텀 realm (기본값: 도메인)
+  realm: string; // Custom realm (default: domain)
   spec: Partial<PasswordSpec>;
-  version: number; // 패스워드 변경 시 증가
-  notes?: string; // 사용자 메모
+  version: number; // Increment on password change
+  notes?: string; // User notes
   createdAt: number;
   updatedAt: number;
 }
 
 interface GlobalSettings {
   defaultSpec: PasswordSpec;
-  autoLockMinutes: number; // 자동 잠금 시간 (기본: 15분)
-  autoFillEnabled: boolean; // 자동입력 활성화 여부
+  autoLockMinutes: number; // Auto-lock time (default: 15 min)
+  autoFillEnabled: boolean; // Autofill enabled
   showPasswordByDefault: boolean;
   theme: "light" | "dark" | "system";
 }
 ```
 
-### 저장하지 않는 것 (보안)
+### Never Stored (Security)
 
 - Master Password
 - Generated Passwords
@@ -403,17 +306,17 @@ interface GlobalSettings {
 ### Threat Model
 
 ```
-위협 1: 익스텐션 스토리지 탈취
-  → 대응: 패스워드 미저장, 설정만 저장
+Threat 1: Extension storage theft
+  → Mitigation: Passwords never stored, only settings
 
-위협 2: Content Script XSS
-  → 대응: Content Script는 패스워드 생성 불가, 메시지로만 수신
+Threat 2: Content Script XSS
+  → Mitigation: Content Script cannot generate passwords, receives via message only
 
-위협 3: 메모리 덤프
-  → 대응: 마스터 패스워드는 Service Worker 메모리에만, 자동 만료
+Threat 3: Memory dump
+  → Mitigation: Master password only in Service Worker memory, auto-expires
 
-위협 4: Clipboard 스니핑
-  → 대응: 자동 클립보드 클리어 (30초), 직접 자동입력 권장
+Threat 4: Clipboard sniffing
+  → Mitigation: Auto-clear clipboard (30s), recommend direct autofill
 ```
 
 ---
@@ -445,13 +348,13 @@ type Response<T = unknown> =
 ### Background ↔ Content Script
 
 ```typescript
-// Background → Content Script (자동입력)
+// Background → Content Script (autofill)
 chrome.tabs.sendMessage(tabId, {
   type: "FILL_PASSWORD",
   payload: { password: "..." },
 });
 
-// Content Script → Background (폼 감지 알림)
+// Content Script → Background (form detection notification)
 chrome.runtime.sendMessage({
   type: "PASSWORD_FIELD_DETECTED",
   payload: { domain: "github.com", formId: "..." },
@@ -464,55 +367,54 @@ chrome.runtime.sendMessage({
 
 ### Phase 1: MVP ✅
 
-**Goal**: 기본 패스워드 생성 및 복사
+**Goal**: Basic password generation and copy
 
-- [x] 프로젝트 셋업 (모노레포, Nix flake)
-- [x] `@tskey/core` 패키지
-  - [x] PBKDF2 + AES-CTR DRBG 구현 (password-only mode)
-  - [x] HKDF + AES-CTR DRBG 구현 (seed mode)
-  - [x] Seed 생성 & 암호화 (AES-GCM)
-  - [x] 패스워드 생성 로직
-  - [x] Realm 추출 (tldts)
-  - [x] 테스트 (82 tests passing)
-- [x] Extension 기본 구조 (WXT)
-  - [x] Service Worker (세션 관리 + seed 지원)
-  - [x] Popup UI (잠금해제/Seed 설정 → 패스워드 생성 → 복사)
-  - [x] Domain 기반 아키텍처 (Feature-Sliced Design)
+- [x] Project setup (monorepo, Nix flake)
+- [x] `@tskey/core` package
+  - [x] HKDF + AES-CTR DRBG implementation
+  - [x] Seed generation & encryption (AES-GCM)
+  - [x] Password generation logic
+  - [x] Realm extraction (tldts)
+  - [x] Tests (82 tests passing)
+- [x] Extension basic structure (WXT)
+  - [x] Service Worker (session management + seed)
+  - [x] Popup UI (unlock/seed setup → password generation → copy)
+  - [x] Domain-based architecture (Feature-Sliced Design)
 
 ### Phase 2: Usability ✅
 
-**Goal**: 실사용 가능한 수준
+**Goal**: Production-ready usability
 
-- [x] Content Script (폼 감지, 자동입력)
+- [x] Content Script (form detection, autofill)
 - [x] Inline dropdown (Shadow DOM)
-- [ ] 사이트별 커스텀 설정 UI
-- [ ] 키보드 단축키
-- [ ] 아이콘 및 뱃지 (잠금 상태 표시)
-- [ ] 다크모드
+- [ ] Per-site custom settings UI
+- [ ] Keyboard shortcuts
+- [ ] Icon and badge (lock status indicator)
+- [ ] Dark mode
 
 ### Phase 3: Polish
 
-**Goal**: 배포 준비
+**Goal**: Release preparation
 
-- [ ] Options 페이지 (전역 설정)
-- [ ] 패스워드 버전 관리 (realm#2 등)
-- [ ] 설정 내보내기/가져오기 (JSON)
-- [ ] Firefox 지원 (WXT 내장)
-- [ ] 문서화 및 README
+- [ ] Options page (global settings)
+- [ ] Password version management (realm#2, etc.)
+- [ ] Settings export/import (JSON)
+- [ ] Firefox support (WXT built-in)
+- [ ] Documentation and README
 
 ---
 
 ## Tests
 
-`packages/core/test/` 디렉토리에 65개의 테스트 케이스:
+82 test cases in `packages/core/test/` directory:
 
-- **csprng.test.ts** (10 tests): DRBG 결정론성, 고유성, gokey 호환성
-- **charset.test.ts** (13 tests): 문자셋 상수, rejection sampling
-- **password.test.ts** (15 tests): 패스워드 생성, spec 준수
-- **realm.test.ts** (27 tests): URL 파싱, eTLD+1 추출, 커스텀 매핑, 버전
+- **csprng.test.ts** (10 tests): DRBG determinism, uniqueness, gokey compatibility
+- **charset.test.ts** (13 tests): Character set constants, rejection sampling
+- **password.test.ts** (15 tests): Password generation, spec compliance
+- **realm.test.ts** (27 tests): URL parsing, eTLD+1 extraction, custom mappings, versions
 
 ```bash
-# 테스트 실행
+# Run tests
 nix develop --command pnpm --filter @tskey/core test
 ```
 
@@ -521,44 +423,44 @@ nix develop --command pnpm --filter @tskey/core test
 ## Development Commands
 
 ```bash
-# Nix 개발 환경 진입
+# Enter Nix dev environment
 nix develop
 
-# 의존성 설치
+# Install dependencies
 nix develop --command pnpm install
 
-# Core 패키지 테스트
+# Core package tests
 nix develop --command pnpm --filter @tskey/core test
 
-# Extension 개발 서버 (Chrome)
+# Extension dev server (Chrome)
 nix develop --command pnpm --filter @tskey/extension dev
 
-# Extension 개발 서버 (Firefox)
+# Extension dev server (Firefox)
 nix develop --command pnpm --filter @tskey/extension dev:firefox
 
-# Extension 빌드
+# Extension build
 nix develop --command pnpm --filter @tskey/extension build
 
-# 전체 빌드
+# Full build
 nix develop --command pnpm build
 
-# 타입 체크
+# Type check
 nix develop --command pnpm typecheck
 ```
 
 ---
 
-## Key Files to Implement First
+## Key Files
 
-우선순위 순서:
+Core files:
 
-1. `packages/core/src/csprng.ts` - PBKDF2 + AES-CTR DRBG
-2. `packages/core/src/charset.ts` - 문자셋 및 rejection sampling
-3. `packages/core/src/password.ts` - 패스워드 생성
-4. `packages/core/tests/vectors.test.ts` - 호환성 테스트
-5. `packages/extension/src/entrypoints/background.ts` - Service Worker
-6. `packages/extension/src/lib/session.ts` - 세션 관리
-7. `packages/extension/src/entrypoints/popup/App.tsx` - 팝업 UI
+1. `packages/core/src/seed.ts` - Seed generation & encryption (AES-GCM)
+2. `packages/core/src/csprng.ts` - HKDF + AES-CTR DRBG
+3. `packages/core/src/charset.ts` - Character set and rejection sampling
+4. `packages/core/src/password.ts` - Password generation
+5. `packages/extension/src/domain/session/` - Session management (seed decryption)
+6. `packages/extension/src/domain/generator/` - Password generation
+7. `packages/extension/src/entrypoints/popup/App.tsx` - Popup UI
 
 ---
 
@@ -578,61 +480,61 @@ nix develop --command pnpm typecheck
 
 ### Context Awareness
 
-- 이 프로젝트는 **보안이 중요**합니다. 암호화 관련 코드는 신중하게 작성하세요.
-- gokey 원본과의 **호환성**이 중요합니다. PBKDF2 + AES-CTR 알고리즘을 정확히 구현하세요.
-- **Manifest V3** 제약사항을 숙지하세요 (background page → service worker 등).
+- This project is **security-critical**. Write crypto-related code carefully.
+- **Compatibility** with gokey seed mode is important. Implement HKDF + AES-CTR algorithm precisely.
+- Understand **Manifest V3** constraints (background page → service worker, etc.).
 
 ### Code Style
 
 #### TypeScript
 - Strict mode (`strict: true`, `noUncheckedIndexedAccess: true`)
-- **`any` 사용 절대 금지** - 모든 코드는 strictly typed
-- 타입 좁히기 시 truthy 체크 대신 명시적 `undefined` 체크 사용
+- **NEVER use `any`** - all code must be strictly typed
+- Use explicit `undefined` checks instead of truthy checks for type narrowing
 
 #### Functional Programming
-- `map`, `filter`, `reduce` 사용 (명령형 루프 대신)
-- 순수 함수 선호, 부작용 최소화
-- 함수 합성과 파이프라인 활용
+- Use `map`, `filter`, `reduce` (instead of imperative loops)
+- Prefer pure functions, minimize side effects
+- Use function composition and pipelines
 
 #### Comments
-- **설명 주석 금지** - 코드가 스스로 설명해야 함
-- 설명 주석 대신 명확한 함수/변수명 사용
-- 허용되는 주석:
-  - Public API용 JSDoc (`/** ... */`)
-  - 이슈 참조가 있는 TODO/FIXME
-  - 법적/규제 관련 주석
-- 주석 포맷 (필요시):
+- **NO explanatory comments** - code should be self-documenting
+- Use descriptive function/variable names instead of comments
+- Allowed comments:
+  - JSDoc for public APIs (`/** ... */`)
+  - TODO/FIXME with issue references
+  - Legal/regulatory comments
+- Comment format (when needed):
   ```typescript
-  /** export용 한 줄 JSDoc */
+  /** Single line JSDoc for exports */
 
   /**
-   * 복잡한 public API용 여러 줄 JSDoc
-   * @param x - 설명
-   * @returns 설명
+   * Multi-line JSDoc for complex public APIs
+   * @param x - Description
+   * @returns Description
    */
 
-  // TODO(#123): 간단한 설명
+  // TODO(#123): Brief description
   ```
 
 #### Error Handling
-- 명시적 throw 또는 Result 패턴
-- silent failure 금지
+- Explicit throw or Result pattern
+- No silent failures
 
 #### Testing
-- Vitest 사용
+- Use Vitest
 
 ### Git Workflow
 
-- **원자적 커밋**: 커밋당 하나의 논리적 변경
-- **코드와 문서 동시 업데이트**: 모든 커밋에 관련 문서 업데이트 포함
-- CLAUDE.md와 docs/를 구현과 동기화 유지
-- 커밋 메시지 형식: `type(scope): description`
+- **Atomic commits**: One logical change per commit
+- **Update docs with code**: Every commit must include relevant doc updates
+- Keep CLAUDE.md and docs/ in sync with implementation
+- Commit message format: `type(scope): description`
 
 ### When Stuck
 
-1. gokey 소스 코드 참조: https://github.com/cloudflare/gokey/blob/main/csprng.go
-2. Web Crypto API 문서 확인
-3. WXT 문서 확인: https://wxt.dev/
+1. Reference gokey source code: https://github.com/cloudflare/gokey/blob/main/csprng.go
+2. Check Web Crypto API docs
+3. Check WXT docs: https://wxt.dev/
 
 ---
 
