@@ -37,6 +37,18 @@ export async function setupSeed(password: string): Promise<Response<void>> {
   return sendMessage({ type: 'SETUP_SEED', payload: { password } });
 }
 
+export async function setupWithPrfKey(
+  prfKey: number[],
+  credentialId: string,
+  salt: string,
+): Promise<Response<void>> {
+  return sendMessage({ type: 'SETUP_WITH_PRF_KEY', payload: { prfKey, credentialId, salt } });
+}
+
+export async function unlockWithPrfKey(prfKey: number[]): Promise<Response<void>> {
+  return sendMessage({ type: 'UNLOCK_WITH_PRF_KEY', payload: { prfKey } });
+}
+
 export async function hasSeed(): Promise<Response<HasSeedResult>> {
   return sendMessage({ type: 'HAS_SEED' });
 }
