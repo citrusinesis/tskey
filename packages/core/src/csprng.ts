@@ -1,10 +1,9 @@
-/** gokey-compatible DRBG using PBKDF2 + AES-CTR */
-export async function createDRNG(
-  password: string,
-  realm: string,
-): Promise<{
+type DRNG = {
   read: (length: number) => Promise<Uint8Array>;
-}> {
+};
+
+/** gokey-compatible DRBG using PBKDF2 + AES-CTR (password-only mode) */
+export async function createDRNG(password: string, realm: string): Promise<DRNG> {
   const encoder = new TextEncoder();
 
   const keyMaterial = await crypto.subtle.importKey(
@@ -26,7 +25,35 @@ export async function createDRNG(
     256,
   );
 
-  const aesKey = await crypto.subtle.importKey('raw', derivedBits, { name: 'AES-CTR' }, false, [
+  return createAesCtrDRNG(derivedBits);
+}
+
+/** gokey-compatible DRBG using HKDF + AES-CTR (seed mode) */
+export async function createDRNGWithSeed(seed: Uint8Array, realm: string): Promise<DRNG> {
+  const encoder = new TextEncoder();
+
+  const salt = new Uint8Array(28);
+  salt.set(seed.slice(0, 12), 0);
+  salt.set(seed.slice(seed.length - 16), 12);
+
+  const keyMaterial = await crypto.subtle.importKey('raw', seed, 'HKDF', false, ['deriveBits']);
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt,
+      info: encoder.encode(realm),
+    },
+    keyMaterial,
+    256,
+  );
+
+  return createAesCtrDRNG(derivedBits);
+}
+
+async function createAesCtrDRNG(keyBytes: ArrayBuffer): Promise<DRNG> {
+  const aesKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CTR' }, false, [
     'encrypt',
   ]);
 
