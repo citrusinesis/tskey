@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { PasswordInput } from '../components';
+import { PasswordInput } from '../../../components';
 
 type Props = {
   hasSeed: boolean;

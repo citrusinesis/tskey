@@ -1,4 +1,5 @@
-import { CopyButton, RealmDisplay } from '../components';
+import { CopyButton } from '../../../components';
+import { RealmDisplay } from './RealmDisplay';
 
 type Props = {
   realm: string;

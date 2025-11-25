@@ -5,7 +5,7 @@ import {
   isDropdownVisible,
   showDropdown,
   updateDropdown,
-} from '../inline';
+} from '../domain/autofill/ui';
 import { generate, getStatus } from '../domain/messaging';
 import type { FillMessage, Response } from '../domain/messaging';
 import { extractRealm } from '@tskey/core';

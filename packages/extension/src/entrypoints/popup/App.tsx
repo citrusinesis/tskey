@@ -1,4 +1,5 @@
-import { GeneratorPage, UnlockPage, useGenerator, useSession } from '../../popup';
+import { GeneratorPage, useGenerator } from '../../domain/generator/ui';
+import { UnlockPage, useSession } from '../../domain/session/ui';
 
 function App() {
   const session = useSession();

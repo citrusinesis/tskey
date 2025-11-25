@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { getCurrentRealm, sendFillToTab, generate as sendGenerate } from '../../domain/messaging';
+import { getCurrentRealm, sendFillToTab, generate as sendGenerate } from '../../messaging';
 
 type GeneratorState = {
   realm: string;

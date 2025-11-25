@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { copyWithAutoClear } from '../../shared';
+import { copyWithAutoClear } from '../lib/clipboard';
 
 type Props = {
   text: string;
