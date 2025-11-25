@@ -308,8 +308,8 @@ async function detectPrfSupport(): Promise<boolean> {
 ## Implementation Plan
 
 ### Phase 1: Infrastructure
-- [ ] Define `unlockMethod` type and extend storage schema
-- [ ] PRF support detection function (`detectPrfSupport`)
+- [x] Define `unlockMethod` type and extend storage schema
+- [x] PRF support detection function (`detectPrfSupport`)
 - [ ] PRF key derivation utility (`derivePrfKey`)
 
 ### Phase 2: PRF-only Mode

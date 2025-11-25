@@ -38,8 +38,10 @@ gokey-ts/
 │           │   ├── session/
 │           │   │   ├── store.ts, service.ts
 │           │   │   └── ui/             # UnlockPage, useSession
+│           │   ├── prf/                # WebAuthn PRF utilities
+│           │   │   └── detect.ts       # PRF support detection
 │           │   ├── messaging/          # Message protocol types & handlers
-│           │   └── storage/            # Chrome storage wrapper (encrypted seed)
+│           │   └── storage/            # Chrome storage wrapper (encrypted seed, PRF config)
 │           ├── components/   # Shared React components (PasswordInput, CopyButton)
 │           ├── lib/          # Utilities (clipboard)
 │           └── entrypoints/  # WXT entry points (thin layer)
@@ -129,7 +131,11 @@ Background → Content: { type: 'FILL', payload: { password } }
   - ui/: SetupPage, UnlockPage, SeedExportReminder, useSession hook
 - [x] `packages/extension/src/domain/storage/` - Chrome storage wrapper
   - Encrypted seed (AES-GCM), sites config, settings
+  - UnlockMethod type (`password` | `prf` | `hybrid`)
+  - PrfConfig storage (credentialId, salt, encryptedPassword)
   - getEffectiveRealm() for versioned passwords
+- [x] `packages/extension/src/domain/prf/` - WebAuthn PRF utilities
+  - detectPrfSupport(): Browser PRF support detection
 - [x] `packages/extension/src/domain/generator/` - Password generation
   - service.ts: @tskey/core wrapper (supports seed mode)
   - ui/: GeneratorPage, useGenerator hook
@@ -145,9 +151,10 @@ Background → Content: { type: 'FILL', payload: { password } }
 ### Pending
 
 #### Next: Biometric Authentication (WebAuthn PRF)
-- [ ] Multi-mode unlock system (`password` | `prf` | `hybrid`)
-- [ ] PRF support detection
+- [x] Multi-mode unlock types (`password` | `prf` | `hybrid`)
+- [x] PRF support detection (`detectPrfSupport()`)
 - [ ] Passkey creation + PRF key derivation
+- [ ] PRF-based seed encryption/decryption
 - [ ] Mode selection UI (first run)
 - [ ] Cross-browser fallback (Firefox → password mode)
 - See: `docs/03-Biometric-Authentication.md`
