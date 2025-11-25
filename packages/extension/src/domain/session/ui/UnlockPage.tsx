@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { PasswordInput } from '../../../components';
 import type { UnlockMethod } from '../../messaging';
+import { getPrfUnavailableMessage, usePrfSupport } from '../../prf';
 
 type Props = {
   unlockMethod: UnlockMethod;
@@ -24,6 +25,7 @@ export function UnlockPage({
   const [showImport, setShowImport] = useState(false);
   const [importPassword, setImportPassword] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const prfSupport = usePrfSupport();
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +110,51 @@ export function UnlockPage({
   }
 
   if (unlockMethod === 'prf') {
+    if (!prfSupport.isChecking && !prfSupport.isSupported) {
+      return (
+        <div className="space-y-4">
+          <div className="rounded bg-amber-50 p-3 text-xs text-amber-700">
+            {getPrfUnavailableMessage(prfSupport.reason)}
+          </div>
+
+          <div className="rounded bg-blue-50 p-3 text-xs text-blue-700">
+            Your account was set up with biometrics. To access on this browser, import your seed
+            file.
+          </div>
+
+          <div>
+            <label htmlFor="import-password" className="mb-1 block text-xs text-gray-500">
+              New Master Password
+            </label>
+            <PasswordInput
+              id="import-password"
+              value={importPassword}
+              onChange={setImportPassword}
+              placeholder="Create new master password"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="seed-file" className="mb-1 block text-xs text-gray-500">
+              Seed File
+            </label>
+            <input
+              id="seed-file"
+              type="file"
+              accept=".key"
+              onChange={handleFileSelect}
+              disabled={isLoading}
+              className="w-full text-xs file:mr-2 file:rounded file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
+
+          {(error ?? validationError) && (
+            <p className="text-xs text-red-500">{error ?? validationError}</p>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <div className="rounded bg-green-50 p-3 text-xs text-green-700">
@@ -117,7 +164,7 @@ export function UnlockPage({
         <button
           type="button"
           onClick={onUnlockWithPrf}
-          disabled={isLoading}
+          disabled={isLoading || prfSupport.isChecking}
           className="w-full rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
         >
           {isLoading ? 'Authenticating...' : 'Unlock with Biometrics'}

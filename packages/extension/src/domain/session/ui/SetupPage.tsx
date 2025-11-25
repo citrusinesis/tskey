@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { PasswordInput } from '../../../components';
-import { usePrfSupport } from '../../prf';
+import { getPrfUnavailableMessage, usePrfSupport } from '../../prf';
 
 type Props = {
   onSetup: (password: string) => void;
@@ -190,7 +190,7 @@ export function SetupPage({ onSetup, onSetupWithPrf, onImport, isLoading, error 
 
       {!prfSupport.isChecking && !prfSupport.isSupported && (
         <div className="rounded bg-yellow-50 p-3 text-xs text-yellow-700">
-          Biometric authentication is not available on this browser.
+          {getPrfUnavailableMessage(prfSupport.reason)}
         </div>
       )}
 

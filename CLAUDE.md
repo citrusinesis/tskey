@@ -158,7 +158,7 @@ Background → Content: { type: 'FILL', payload: { password } }
 - [x] Passkey creation + PRF key derivation (`createPasskey`, `derivePrfKey`)
 - [x] PRF-based seed encryption/decryption
 - [x] Mode selection UI (first run)
-- [ ] Cross-browser fallback (Firefox → password mode)
+- [x] Cross-browser fallback (Firefox → password mode)
 - See: `docs/03-Biometric-Authentication.md`
 
 #### Later
