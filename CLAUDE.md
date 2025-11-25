@@ -1,9 +1,9 @@
-# CLAUDE.md - Gokey Browser Extension
+# CLAUDE.md - TSKey Browser Extension
 
 ## What is this?
 
-Vaultless password manager browser extension based on Cloudflare's gokey.
-Generates passwords deterministically using gokey's PBKDF2 + AES-CTR algorithm.
+Vaultless password manager browser extension based on Cloudflare's gokey algorithm.
+Generates passwords deterministically using PBKDF2 + AES-CTR.
 
 ## Tech Stack
 
@@ -27,11 +27,17 @@ gokey-ts/
 │   │   └── test/             # Vitest tests
 │   └── extension/      # Chrome extension (WXT)
 │       └── src/
-│           └── entrypoints/
-│               ├── background.ts   # Service Worker
-│               ├── popup/          # React UI
-│               ├── content.ts      # Form detection & autofill
-│               └── options/        # Settings page
+│           ├── entrypoints/  # WXT entry points (thin layer)
+│           │   ├── background.ts
+│           │   ├── content.ts
+│           │   └── popup/
+│           ├── session/      # Session domain (master password)
+│           ├── generator/    # Password generation domain
+│           ├── autofill/     # Form detection & autofill
+│           ├── inline/       # Inline dropdown (Shadow DOM)
+│           ├── popup/        # Popup UI (pages, components, hooks)
+│           ├── messaging/    # Message protocol types & handlers
+│           └── shared/       # Shared utilities (clipboard)
 ├── pnpm-workspace.yaml
 ├── flake.nix
 └── package.json
@@ -68,7 +74,7 @@ Key points:
 1. **NEVER store** master password or generated passwords
 2. Master password lives **only in Service Worker memory**
 3. Content Scripts **cannot access** master password directly
-4. Auto-lock after inactivity (default 15min)
+4. Session persists until browser closes (Service Worker lifecycle)
 5. Clear clipboard after copy (30s)
 
 ## Storage (chrome.storage.local)
@@ -84,7 +90,6 @@ Key points:
     }
   },
   settings: {
-    autoLockMinutes: 15,
     autoFillEnabled: true
   }
 }
@@ -93,23 +98,30 @@ Key points:
 ## Message Flow
 
 ```
-Popup → Background: { type: 'GENERATE_PASSWORD', payload: { realm } }
-Background → Popup: { success: true, data: { password } }
-Background → Content: { type: 'FILL_PASSWORD', payload: { password } }
+Popup/Content → Background: { type: 'UNLOCK', payload: { password } }
+Popup/Content → Background: { type: 'GET_STATUS' }
+Popup/Content → Background: { type: 'GENERATE', payload: { realm } }
+Popup → Background: { type: 'GET_CURRENT_REALM' }
+Background → Content: { type: 'FILL', payload: { password } }
 ```
 
 ## Implementation Status
 
 ### Completed
-- [x] `packages/core/src/csprng.ts` - PBKDF2 + AES-CTR DRBG
-- [x] `packages/core/src/charset.ts` - Character set (94 chars, gokey order: 1234567890)
-- [x] `packages/core/src/password.ts` - Password generation
-- [x] `packages/core/src/realm.ts` - Domain extraction (tldts)
-- [x] `packages/core/test/*.test.ts` - 65 tests passing
+- [x] `packages/core/` - Crypto logic (65 tests passing)
+- [x] `packages/extension/src/messaging/` - Type-safe message protocol
+- [x] `packages/extension/src/session/` - Master password in-memory store (persists until browser close)
+- [x] `packages/extension/src/generator/` - @tskey/core wrapper
+- [x] `packages/extension/src/entrypoints/background.ts` - Service worker message handler
+- [x] `packages/extension/src/popup/` - Unlock/Generator UI (auto-detects realm from active tab)
+- [x] `packages/extension/src/autofill/` - Form detection & fill
+- [x] `packages/extension/src/inline/` - Inline dropdown below password fields (Shadow DOM)
+- [x] `packages/extension/src/entrypoints/content.ts` - Content script with password field focus detection
+- [x] `packages/extension/src/shared/` - Clipboard auto-clear
 
-### In Progress
-- [ ] `packages/extension/src/entrypoints/background.ts` - Service worker + session
-- [ ] `packages/extension/src/entrypoints/popup/` - Basic UI
+### Pending
+- [ ] Options page (settings UI)
+- [ ] Site-specific config storage
 
 ## Commands
 
@@ -192,8 +204,11 @@ Test files in `packages/core/test/`:
 
 ## Git Workflow
 
-- **Atomic commits**: One logical change per commit
+- **Small atomic commits**: One commit = one small logical change
+  - Adding 1-2 new files = 1 commit
+  - One feature or bug fix = 1 commit
+  - Separate refactoring from feature additions
 - **Update docs with code**: Every commit must include relevant doc updates
 - Keep CLAUDE.md and docs/ in sync with implementation
-- If has breakthough change, write documentation in docs/ in order
+- If has breakthrough change, write documentation in docs/ in order
 - Commit message format: `type(scope): description`
