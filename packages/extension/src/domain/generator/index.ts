@@ -1,1 +1,1 @@
-export { generate, getRealm } from './service';
+export { generate, getEffectiveRealm, getRealm } from './service';
