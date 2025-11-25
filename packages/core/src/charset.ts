@@ -1,9 +1,9 @@
 export const CHARSET =
-  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()-_=+[{]}\\|;:\'",<.>/?';
+  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890`~!@#$%^&*()-_=+[{]}\\|;:\'",<.>/?';
 
 export const LOWER = 'abcdefghijklmnopqrstuvwxyz';
 export const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-export const DIGITS = '0123456789';
+export const DIGITS = '1234567890';
 export const SPECIAL = '`~!@#$%^&*()-_=+[{]}\\|;:\'",<.>/?';
 
 /** Select character using rejection sampling for uniform distribution */
