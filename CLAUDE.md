@@ -136,6 +136,8 @@ Background → Content: { type: 'FILL', payload: { password } }
   - getEffectiveRealm() for versioned passwords
 - [x] `packages/extension/src/domain/prf/` - WebAuthn PRF utilities
   - detectPrfSupport(): Browser PRF support detection
+  - createPasskey(): Create passkey with PRF extension
+  - derivePrfKey(): Derive key from PRF during authentication
 - [x] `packages/extension/src/domain/generator/` - Password generation
   - service.ts: @tskey/core wrapper (supports seed mode)
   - ui/: GeneratorPage, useGenerator hook
@@ -153,7 +155,7 @@ Background → Content: { type: 'FILL', payload: { password } }
 #### Next: Biometric Authentication (WebAuthn PRF)
 - [x] Multi-mode unlock types (`password` | `prf` | `hybrid`)
 - [x] PRF support detection (`detectPrfSupport()`)
-- [ ] Passkey creation + PRF key derivation
+- [x] Passkey creation + PRF key derivation (`createPasskey`, `derivePrfKey`)
 - [ ] PRF-based seed encryption/decryption
 - [ ] Mode selection UI (first run)
 - [ ] Cross-browser fallback (Firefox → password mode)
