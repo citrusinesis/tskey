@@ -242,10 +242,27 @@ Test files in `packages/core/test/`:
   - Adding 1-2 new files = 1 commit
   - One feature or bug fix = 1 commit
   - Separate refactoring from feature additions
-- **Update docs with code**: Every commit must include relevant doc updates
-- Keep CLAUDE.md and docs/ in sync with implementation
-- If has breakthrough change, write documentation in docs/ in order
 - Commit message format: `type(scope): description`
+
+### Documentation Sync (CRITICAL)
+
+**Every code change MUST update corresponding documentation:**
+
+| Change Type | Update Required |
+|-------------|-----------------|
+| New feature/function | CLAUDE.md (Implementation Status) + relevant docs/ |
+| API change | CLAUDE.md (Message Flow, Storage) + docs/ |
+| Bug fix | CLAUDE.md if it affects documented behavior |
+| Refactor | CLAUDE.md (Project Structure) if file paths change |
+
+**Files to keep in sync:**
+- `CLAUDE.md` - Implementation status, project structure, message flow
+- `docs/00-Project-Context.md` - Architecture, phases
+- `docs/01-Mode-Workflow.md` - User flows, state machine
+- `docs/02-Password-Security.md` - Security scenarios
+- `docs/03-Biometric-Authentication.md` - PRF implementation plan
+
+**Rule**: If a PR adds/modifies functionality, the PR MUST include doc updates. No exceptions.
 
 ## PR Workflow for External Agents
 
