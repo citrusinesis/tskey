@@ -1,9 +1,14 @@
-import { decryptSeed, encryptSeed, generateSeed } from '@tskey/core';
-
 import { generate, getRealm } from '../generator';
 import { createMessageRouter, type Message, type MessageHandler } from '../messaging';
-import { getDecryptedSeed, getMasterPassword, hasSeed, isUnlocked, lock, unlock } from '../session';
-import { getEncryptedSeed, hasEncryptedSeed, setEncryptedSeed } from '../storage';
+import {
+  getDecryptedSeed,
+  getMasterPassword,
+  hasSeedStored,
+  isUnlocked,
+  lock,
+  setupSeed,
+  unlockSession,
+} from '../session';
 
 const handlers: Record<Message['type'], MessageHandler> = {
   UNLOCK: async (message) => {
@@ -11,19 +16,12 @@ const handlers: Record<Message['type'], MessageHandler> = {
       return { success: false, error: 'Invalid message' };
     }
 
-    const encryptedSeed = await getEncryptedSeed();
-    if (encryptedSeed) {
-      try {
-        const seed = await decryptSeed(encryptedSeed, message.payload.password);
-        unlock(message.payload.password, seed);
-      } catch {
-        return { success: false, error: 'Invalid password' };
-      }
-    } else {
-      unlock(message.payload.password);
+    try {
+      await unlockSession(message.payload.password);
+      return { success: true, data: undefined };
+    } catch {
+      return { success: false, error: 'Invalid password' };
     }
-
-    return { success: true, data: undefined };
   },
 
   LOCK: async () => {
@@ -32,7 +30,7 @@ const handlers: Record<Message['type'], MessageHandler> = {
   },
 
   GET_STATUS: async () => {
-    const seedExists = await hasEncryptedSeed();
+    const seedExists = await hasSeedStored();
     return { success: true, data: { isUnlocked: isUnlocked(), hasSeed: seedExists } };
   },
 
@@ -66,16 +64,12 @@ const handlers: Record<Message['type'], MessageHandler> = {
       return { success: false, error: 'Invalid message' };
     }
 
-    const seed = await generateSeed();
-    const encrypted = await encryptSeed(seed, message.payload.password);
-    await setEncryptedSeed(encrypted);
-    unlock(message.payload.password, seed);
-
+    await setupSeed(message.payload.password);
     return { success: true, data: undefined };
   },
 
   HAS_SEED: async () => {
-    const exists = await hasEncryptedSeed();
+    const exists = await hasSeedStored();
     return { success: true, data: { hasSeed: exists } };
   },
 
