@@ -314,8 +314,8 @@ async function detectPrfSupport(): Promise<boolean> {
 
 ### Phase 2: PRF-only Mode
 - [x] Passkey creation flow (`createPasskey`)
-- [ ] PRF-based seed encryption/decryption
-- [ ] PRF unlock service (`unlockWithPrf`)
+- [x] PRF-based seed encryption/decryption
+- [x] PRF unlock service (`unlockSessionWithPrf`, `setupSessionWithPrf`)
 - [ ] PRF setup UI
 
 ### Phase 3: Mode Selection UI
