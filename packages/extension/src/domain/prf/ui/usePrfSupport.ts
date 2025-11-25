@@ -6,7 +6,6 @@ type PrfSupportState = {
   isChecking: boolean;
   isSupported: boolean;
   reason?: PrfSupportResult['reason'];
-  browser?: PrfSupportResult['browser'];
 };
 
 export function usePrfSupport() {
@@ -14,7 +13,6 @@ export function usePrfSupport() {
     isChecking: true,
     isSupported: false,
     reason: undefined,
-    browser: undefined,
   });
 
   useEffect(() => {
@@ -23,7 +21,6 @@ export function usePrfSupport() {
         isChecking: false,
         isSupported: result.supported,
         reason: result.reason,
-        browser: result.browser,
       });
     });
   }, []);
