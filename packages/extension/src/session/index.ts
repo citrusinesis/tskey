@@ -1,1 +1,1 @@
-export { getMasterPassword, isUnlocked, lock, unlock } from './store';
+export { getDecryptedSeed, getMasterPassword, hasSeed, isUnlocked, lock, unlock } from './store';
