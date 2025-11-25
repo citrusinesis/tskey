@@ -1,0 +1,26 @@
+{
+  "name": "tskey",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.14.2",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter @tskey/extension dev",
+    "test": "pnpm -r test",
+    "test:core": "pnpm --filter @tskey/core test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.7",
+    "typescript": "^5.6.3"
+  }
+}
