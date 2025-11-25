@@ -15,7 +15,10 @@ import {
   unlockSession,
   unlockSessionWithPrfKey,
 } from '../domain/session';
-import { getPrfConfig, getUnlockMethod } from '../domain/storage';
+import { getPrfConfig, getSettings, getUnlockMethod } from '../domain/storage';
+
+const AUTO_LOCK_ALARM_NAME = 'auto-lock-check';
+let lastActivityTime = Date.now();
 
 const handlers: Record<Message['type'], MessageHandler> = {
   UNLOCK: async (message) => {
@@ -25,6 +28,8 @@ const handlers: Record<Message['type'], MessageHandler> = {
 
     try {
       await unlockSession(message.payload.password);
+      resetActivityTimer();
+      await startAutoLockAlarm();
       return { success: true, data: undefined };
     } catch {
       return { success: false, error: 'Invalid password' };
@@ -39,6 +44,8 @@ const handlers: Record<Message['type'], MessageHandler> = {
     try {
       const prfKey = new Uint8Array(message.payload.prfKey);
       await unlockSessionWithPrfKey(prfKey);
+      resetActivityTimer();
+      await startAutoLockAlarm();
       return { success: true, data: undefined };
     } catch {
       return { success: false, error: 'Failed to unlock with PRF' };
@@ -47,6 +54,7 @@ const handlers: Record<Message['type'], MessageHandler> = {
 
   LOCK: async () => {
     lock();
+    await stopAutoLockAlarm();
     return { success: true, data: undefined };
   },
 
@@ -77,6 +85,7 @@ const handlers: Record<Message['type'], MessageHandler> = {
       return { success: false, error: 'Session locked' };
     }
 
+    resetActivityTimer();
     const seed = getDecryptedSeed();
     const password = await generate(masterPassword, message.payload.realm, seed ?? undefined);
     return { success: true, data: { password } };
@@ -162,6 +171,45 @@ const handlers: Record<Message['type'], MessageHandler> = {
   },
 };
 
+function resetActivityTimer() {
+  lastActivityTime = Date.now();
+}
+
+async function startAutoLockAlarm() {
+  const settings = await getSettings();
+  if (settings.autoLockMinutes === 0) {
+    await stopAutoLockAlarm();
+    return;
+  }
+
+  await chrome.alarms.create(AUTO_LOCK_ALARM_NAME, {
+    periodInMinutes: 1,
+  });
+}
+
+async function stopAutoLockAlarm() {
+  await chrome.alarms.clear(AUTO_LOCK_ALARM_NAME);
+}
+
+async function checkAutoLock() {
+  if (!isUnlocked()) return;
+
+  const settings = await getSettings();
+  if (settings.autoLockMinutes === 0) return;
+
+  const elapsedMinutes = (Date.now() - lastActivityTime) / 1000 / 60;
+  if (elapsedMinutes >= settings.autoLockMinutes) {
+    lock();
+    await stopAutoLockAlarm();
+  }
+}
+
 export default defineBackground(() => {
   chrome.runtime.onMessage.addListener(createMessageRouter(handlers));
+
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === AUTO_LOCK_ALARM_NAME) {
+      checkAutoLock();
+    }
+  });
 });
