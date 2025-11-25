@@ -19,12 +19,13 @@ gokey-ts/
 ├── packages/
 │   ├── core/           # Crypto logic (platform-agnostic)
 │   │   ├── src/
-│   │   │   ├── csprng.ts     # PBKDF2 + AES-CTR DRBG
+│   │   │   ├── csprng.ts     # PBKDF2/HKDF + AES-CTR DRBG
+│   │   │   ├── seed.ts       # Seed generation & encryption
 │   │   │   ├── password.ts
 │   │   │   ├── charset.ts
 │   │   │   ├── realm.ts      # Domain → realm extraction (tldts)
 │   │   │   └── types.ts
-│   │   └── test/             # Vitest tests
+│   │   └── test/             # Vitest tests (82 tests)
 │   └── extension/      # Chrome extension (WXT)
 │       └── src/
 │           ├── entrypoints/  # WXT entry points (thin layer)
@@ -45,26 +46,29 @@ gokey-ts/
 
 ## Core Algorithm (gokey compatible)
 
-gokey uses PBKDF2 + AES-CTR for deterministic random byte generation:
-
+### Password-only Mode
 ```typescript
-// 1. Derive key from password + realm
+// PBKDF2(password, realm) → AES-CTR key
 const key = await PBKDF2(password, realm, 4096, 32, "SHA-256");
+const drng = AES-CTR(key, zeroIV);
+```
 
-// 2. Create AES-CTR cipher with zero IV
-const cipher = await AES-CTR(key, zeroIV);
+### Seed Mode (higher entropy)
+```typescript
+// 1. Generate & encrypt seed (one-time setup)
+const seed = generateSeed();                    // 256 random bytes
+const encrypted = encryptSeed(seed, password);  // AES-GCM
 
-// 3. Generate deterministic bytes by encrypting zeros
-const bytes = cipher.encrypt(new Uint8Array(length));
-
-// 4. Map bytes to charset with rejection sampling
-const password = mapToCharset(bytes, spec);
+// 2. Decrypt seed & derive key with HKDF
+const seed = decryptSeed(encrypted, password);
+const salt = seed[0:12] + seed[-16:];           // 28 bytes
+const key = HKDF(SHA256, seed, salt, realm);
+const drng = AES-CTR(key, zeroIV);
 ```
 
 Key points:
-
-- PBKDF2-SHA256 with 4096 iterations
-- Salt = realm string (password-only mode)
+- Password-only: PBKDF2-SHA256, 4096 iterations
+- Seed mode: HKDF-SHA256 with encrypted seed
 - AES-256-CTR with 16-byte zero IV
 - Rejection sampling for uniform character distribution
 - gokey CLI compatible output
@@ -108,7 +112,10 @@ Background → Content: { type: 'FILL', payload: { password } }
 ## Implementation Status
 
 ### Completed
-- [x] `packages/core/` - Crypto logic (65 tests passing)
+- [x] `packages/core/` - Crypto logic (82 tests passing)
+  - Password-only mode (PBKDF2 + AES-CTR)
+  - Seed mode (HKDF + AES-CTR)
+  - Seed generation & encryption (AES-GCM)
 - [x] `packages/extension/src/messaging/` - Type-safe message protocol
 - [x] `packages/extension/src/session/` - Master password in-memory store (persists until browser close)
 - [x] `packages/extension/src/generator/` - @tskey/core wrapper
@@ -120,6 +127,7 @@ Background → Content: { type: 'FILL', payload: { password } }
 - [x] `packages/extension/src/shared/` - Clipboard auto-clear
 
 ### Pending
+- [ ] Extension: Seed storage & management UI
 - [ ] Options page (settings UI)
 - [ ] Site-specific config storage
 
