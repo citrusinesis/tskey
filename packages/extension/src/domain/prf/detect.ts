@@ -3,6 +3,23 @@ export interface PrfSupportResult {
   reason?: 'no-webauthn' | 'no-platform-authenticator' | 'no-prf-extension';
 }
 
+interface ClientCapabilities {
+  conditionalCreate?: boolean;
+  conditionalGet?: boolean;
+  hybridTransport?: boolean;
+  passkeyPlatformAuthenticator?: boolean;
+  userVerifyingPlatformAuthenticator?: boolean;
+  extensions?: {
+    prf?: boolean;
+    largeBlob?: boolean;
+    credProps?: boolean;
+  };
+}
+
+interface PublicKeyCredentialWithCapabilities {
+  getClientCapabilities?: () => Promise<ClientCapabilities>;
+}
+
 export async function detectPrfSupport(): Promise<PrfSupportResult> {
   if (typeof window === 'undefined' || !window.PublicKeyCredential) {
     return { supported: false, reason: 'no-webauthn' };
@@ -14,33 +31,27 @@ export async function detectPrfSupport(): Promise<PrfSupportResult> {
     return { supported: false, reason: 'no-platform-authenticator' };
   }
 
-  if (!isPrfExtensionSupported()) {
+  const prfSupported = await isPrfExtensionSupported();
+  if (!prfSupported) {
     return { supported: false, reason: 'no-prf-extension' };
   }
 
   return { supported: true };
 }
 
-function isPrfExtensionSupported(): boolean {
-  const ua = navigator.userAgent;
+async function isPrfExtensionSupported(): Promise<boolean> {
+  const credential = PublicKeyCredential as unknown as PublicKeyCredentialWithCapabilities;
 
-  const chromeMatch = ua.match(/Chrome\/(\d+)/);
-  if (chromeMatch !== null && chromeMatch[1] !== undefined) {
-    const version = parseInt(chromeMatch[1], 10);
-    return version >= 116;
+  if (typeof credential.getClientCapabilities === 'function') {
+    try {
+      const capabilities = await credential.getClientCapabilities();
+      return capabilities.extensions?.prf === true;
+    } catch {
+      return false;
+    }
   }
 
-  const safariMatch = ua.match(/Version\/(\d+).*Safari/);
-  if (safariMatch !== null && safariMatch[1] !== undefined) {
-    const version = parseInt(safariMatch[1], 10);
-    return version >= 17;
-  }
-
-  const edgeMatch = ua.match(/Edg\/(\d+)/);
-  if (edgeMatch !== null && edgeMatch[1] !== undefined) {
-    const version = parseInt(edgeMatch[1], 10);
-    return version >= 116;
-  }
-
-  return false;
+  // Fallback: assume supported if getClientCapabilities is not available
+  // The actual PRF operation will fail with a clear error if not supported
+  return true;
 }
