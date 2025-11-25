@@ -1,4 +1,4 @@
-import { fill, findPasswordFields } from '../autofill';
+import { fill, findPasswordFields } from '../domain/autofill';
 import {
   getCurrentField,
   hideDropdown,
@@ -6,8 +6,8 @@ import {
   showDropdown,
   updateDropdown,
 } from '../inline';
-import { generate, getStatus } from '../messaging';
-import type { FillMessage, Response } from '../messaging';
+import { generate, getStatus } from '../domain/messaging';
+import type { FillMessage, Response } from '../domain/messaging';
 import { extractRealm } from '@tskey/core';
 
 type DropdownState = {

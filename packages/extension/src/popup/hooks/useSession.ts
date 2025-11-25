@@ -5,7 +5,7 @@ import {
   lock as sendLock,
   setupSeed as sendSetupSeed,
   unlock as sendUnlock,
-} from '../../messaging';
+} from '../../domain/messaging';
 
 type SessionState = {
   isUnlocked: boolean;

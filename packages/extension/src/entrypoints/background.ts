@@ -1,5 +1,5 @@
-import { generate, getRealm } from '../generator';
-import { createMessageRouter, type Message, type MessageHandler } from '../messaging';
+import { generate, getRealm } from '../domain/generator';
+import { createMessageRouter, type Message, type MessageHandler } from '../domain/messaging';
 import {
   getDecryptedSeed,
   getMasterPassword,
@@ -8,7 +8,7 @@ import {
   lock,
   setupSeed,
   unlockSession,
-} from '../session';
+} from '../domain/session';
 
 const handlers: Record<Message['type'], MessageHandler> = {
   UNLOCK: async (message) => {
