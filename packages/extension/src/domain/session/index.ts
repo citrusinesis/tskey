@@ -9,5 +9,7 @@ export {
   lock,
   markSeedExported,
   setupSeed,
+  setupSessionWithPrf,
   unlockSession,
+  unlockSessionWithPrf,
 } from './service';

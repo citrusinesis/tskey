@@ -1,11 +1,16 @@
 import { decryptSeed, encryptSeed, generateSeed } from '@tskey/core';
 
+import { decryptWithKey, encryptWithKey, prfKeyToPassword } from '../prf/crypto';
+import { createPasskey, derivePrfKey } from '../prf/service';
 import {
   getEncryptedSeed,
+  getPrfConfig,
   getSeedExported,
   hasEncryptedSeed,
   setEncryptedSeed,
+  setPrfConfig,
   setSeedExported,
+  setUnlockMethod,
 } from '../storage';
 import { getDecryptedSeed, getMasterPassword, isUnlocked, lock, unlock } from './store';
 
@@ -27,6 +32,41 @@ export async function setupSeed(password: string): Promise<void> {
   const encrypted = await encryptSeed(seed, password);
   await setEncryptedSeed(encrypted);
   await setSeedExported(false);
+  await setUnlockMethod('password');
+  unlock(password, seed);
+}
+
+export async function setupSessionWithPrf(userId: string): Promise<void> {
+  const { credentialId, salt } = await createPasskey(userId);
+  const { prfKey } = await derivePrfKey(credentialId, salt);
+
+  const seed = await generateSeed();
+  const encryptedSeed = await encryptWithKey(seed, prfKey);
+
+  await setEncryptedSeed(encryptedSeed);
+  await setSeedExported(false);
+  await setUnlockMethod('prf');
+  await setPrfConfig({ credentialId, salt });
+
+  const password = prfKeyToPassword(prfKey);
+  unlock(password, seed);
+}
+
+export async function unlockSessionWithPrf(): Promise<void> {
+  const prfConfig = await getPrfConfig();
+  if (prfConfig === null) {
+    throw new Error('PRF not configured');
+  }
+
+  const encryptedSeed = await getEncryptedSeed();
+  if (encryptedSeed === null) {
+    throw new Error('No seed found');
+  }
+
+  const { prfKey } = await derivePrfKey(prfConfig.credentialId, prfConfig.salt);
+  const seed = await decryptWithKey(encryptedSeed, prfKey);
+  const password = prfKeyToPassword(prfKey);
+
   unlock(password, seed);
 }
 
@@ -46,6 +86,7 @@ export async function importSeed(seed: Uint8Array, password: string): Promise<vo
   const encrypted = await encryptSeed(seed, password);
   await setEncryptedSeed(encrypted);
   await setSeedExported(true);
+  await setUnlockMethod('password');
   unlock(password, seed);
 }
 
