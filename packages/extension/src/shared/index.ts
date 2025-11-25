@@ -1,0 +1,1 @@
+export { copyWithAutoClear } from './clipboard';
