@@ -246,3 +246,104 @@ Test files in `packages/core/test/`:
 - Keep CLAUDE.md and docs/ in sync with implementation
 - If has breakthrough change, write documentation in docs/ in order
 - Commit message format: `type(scope): description`
+
+## PR Workflow for External Agents
+
+When assigning tasks to external agents, split features into reviewable PR units:
+
+### PR Size Guidelines
+
+| PR Type | Scope | Example |
+|---------|-------|---------|
+| **XS** | 1-2 files, < 100 lines | Fix typo, add constant |
+| **S** | 3-5 files, < 300 lines | Add utility function, new component |
+| **M** | 5-10 files, < 500 lines | New domain feature, refactor module |
+| **L** | 10+ files, < 1000 lines | Cross-cutting feature (avoid if possible) |
+
+### Splitting Large Features
+
+Break down by **vertical slice** (end-to-end for one scenario), not horizontal layer:
+
+```
+❌ Bad: Split by layer
+  PR1: Add all types
+  PR2: Add all services
+  PR3: Add all UI
+
+✅ Good: Split by feature slice
+  PR1: Infrastructure (types, storage schema, detection util)
+  PR2: Core flow (service + basic UI)
+  PR3: Integration (background handler, App routing)
+  PR4: Polish (error handling, edge cases)
+```
+
+### PR Template for Agents
+
+When creating a task for an external agent, provide:
+
+```markdown
+## Task: [Feature Name]
+
+### Context
+- Related docs: `docs/XX-Feature.md`
+- Related code: `packages/extension/src/domain/xxx/`
+
+### Scope
+- [ ] Specific file/function to create or modify
+- [ ] Expected inputs/outputs
+- [ ] Test requirements
+
+### Out of Scope
+- What NOT to touch in this PR
+
+### Acceptance Criteria
+- [ ] Tests pass
+- [ ] Types strict (no `any`)
+- [ ] Follows existing patterns in codebase
+```
+
+### Branch Naming
+
+```
+feat/short-description    # New feature
+fix/issue-description     # Bug fix
+refactor/what-changed     # Code restructure
+docs/topic                # Documentation only
+```
+
+### Example: Biometric Auth Split
+
+From `docs/03-Biometric-Authentication.md`:
+
+```
+PR1: feat/prf-infrastructure
+  - Add unlockMethod type to storage/types.ts
+  - Add prf config to StorageData interface
+  - Add detectPrfSupport() utility
+
+PR2: feat/prf-passkey-creation
+  - Add createPasskey() in new domain/prf/service.ts
+  - Add derivePrfKey() function
+  - Unit tests for PRF key derivation
+
+PR3: feat/prf-unlock-flow
+  - Add unlockWithPrf() service function
+  - Add PRF-based seed encryption/decryption
+  - Integration with session store
+
+PR4: feat/prf-setup-ui
+  - Add PrfSetupPage component
+  - Add mode selection to SetupPage
+  - Update App.tsx routing
+
+PR5: feat/prf-unlock-ui
+  - Update UnlockPage for PRF mode
+  - Add biometric button component
+  - Error handling UI
+```
+
+Each PR should:
+1. Be independently reviewable
+2. Not break existing functionality
+3. Include relevant tests
+4. Update docs if API changes
