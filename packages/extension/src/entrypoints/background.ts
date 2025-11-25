@@ -11,8 +11,11 @@ import {
   lock,
   markSeedExported,
   setupSeed,
+  setupSessionWithPrfKey,
   unlockSession,
+  unlockSessionWithPrfKey,
 } from '../domain/session';
+import { getPrfConfig, getUnlockMethod } from '../domain/storage';
 
 const handlers: Record<Message['type'], MessageHandler> = {
   UNLOCK: async (message) => {
@@ -28,6 +31,20 @@ const handlers: Record<Message['type'], MessageHandler> = {
     }
   },
 
+  UNLOCK_WITH_PRF_KEY: async (message) => {
+    if (message.type !== 'UNLOCK_WITH_PRF_KEY') {
+      return { success: false, error: 'Invalid message' };
+    }
+
+    try {
+      const prfKey = new Uint8Array(message.payload.prfKey);
+      await unlockSessionWithPrfKey(prfKey);
+      return { success: true, data: undefined };
+    } catch {
+      return { success: false, error: 'Failed to unlock with PRF' };
+    }
+  },
+
   LOCK: async () => {
     lock();
     return { success: true, data: undefined };
@@ -36,7 +53,18 @@ const handlers: Record<Message['type'], MessageHandler> = {
   GET_STATUS: async () => {
     const seedExists = await hasSeedStored();
     const seedExported = await isSeedExported();
-    return { success: true, data: { isUnlocked: isUnlocked(), hasSeed: seedExists, seedExported } };
+    const unlockMethod = await getUnlockMethod();
+    const prfConfig = await getPrfConfig();
+    return {
+      success: true,
+      data: {
+        isUnlocked: isUnlocked(),
+        hasSeed: seedExists,
+        seedExported,
+        unlockMethod,
+        prfConfig: prfConfig ?? undefined,
+      },
+    };
   },
 
   GENERATE: async (message) => {
@@ -71,6 +99,20 @@ const handlers: Record<Message['type'], MessageHandler> = {
 
     await setupSeed(message.payload.password);
     return { success: true, data: undefined };
+  },
+
+  SETUP_WITH_PRF_KEY: async (message) => {
+    if (message.type !== 'SETUP_WITH_PRF_KEY') {
+      return { success: false, error: 'Invalid message' };
+    }
+
+    try {
+      const prfKey = new Uint8Array(message.payload.prfKey);
+      await setupSessionWithPrfKey(prfKey, message.payload.credentialId, message.payload.salt);
+      return { success: true, data: undefined };
+    } catch {
+      return { success: false, error: 'Failed to setup with PRF' };
+    }
   },
 
   HAS_SEED: async () => {
