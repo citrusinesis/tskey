@@ -45,13 +45,21 @@ async function isPrfExtensionSupported(): Promise<boolean> {
   if (typeof credential.getClientCapabilities === 'function') {
     try {
       const capabilities = await credential.getClientCapabilities();
-      return capabilities.extensions?.prf === true;
+      if (capabilities.extensions?.prf === false) {
+        return false;
+      }
+      if (capabilities.extensions?.prf === true) {
+        return true;
+      }
     } catch {
-      return false;
+      // getClientCapabilities failed, fall through to assume supported
     }
   }
 
-  // Fallback: assume supported if getClientCapabilities is not available
+  // Fallback: assume supported if:
+  // - getClientCapabilities is not available
+  // - getClientCapabilities doesn't report prf status
+  // - getClientCapabilities call failed
   // The actual PRF operation will fail with a clear error if not supported
   return true;
 }

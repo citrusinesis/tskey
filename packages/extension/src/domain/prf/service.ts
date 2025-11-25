@@ -15,13 +15,13 @@ export async function createPasskey(userId: string): Promise<CreatePasskeyResult
     publicKey: {
       challenge: crypto.getRandomValues(new Uint8Array(32)),
       rp: {
-        name: 'TSKey',
+        name: 'TSKey Password Manager',
         id: window.location.hostname,
       },
       user: {
         id: new TextEncoder().encode(userId),
-        name: userId,
-        displayName: 'TSKey User',
+        name: 'TSKey Biometric Key',
+        displayName: 'TSKey Biometric Key',
       },
       pubKeyCredParams: [
         { alg: -7, type: 'public-key' },
