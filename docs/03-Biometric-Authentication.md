@@ -7,13 +7,12 @@ Uses WebAuthn PRF Extension for hardware-bound key derivation.
 
 ## Unlock Methods
 
-TSKey supports three unlock methods:
+TSKey supports two unlock methods:
 
 | Mode | Description | Supported Browsers |
 |------|-------------|--------------------|
 | `password` | Master password input | All browsers |
 | `prf` | Biometric only (recommended) | Chrome 116+, Safari 17+, Edge 116+ |
-| `hybrid` | Biometric + CLI compatible | Chrome 116+, Safari 17+, Edge 116+ |
 
 ## Architecture
 
@@ -94,45 +93,6 @@ TSKey supports three unlock methods:
 - All browser support
 - CLI compatible (`gokey -p "master_password" -s seed.key -r realm`)
 
-### Mode: `hybrid` (PRF + Password CLI Compatible)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         SETUP                                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  1. User inputs master_password                                  │
-│                                                                  │
-│  2. Create Passkey + PRF(salt) → prf_key                        │
-│                                                                  │
-│  3. AES-GCM encrypt(master_password, prf_key)                   │
-│     └─→ Store encrypted_password                                │
-│                                                                  │
-│  4. Generate seed + encrypt(seed, master_password)              │
-│     └─→ Store encrypted_seed                                    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                         UNLOCK                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  1. WebAuthn authenticate → PRF(salt) → prf_key                 │
-│                                                                  │
-│  2. decrypt(encrypted_password, prf_key) → master_password      │
-│                                                                  │
-│  3. decrypt(encrypted_seed, master_password) → seed             │
-│                                                                  │
-│  4. generate(master_password, realm, seed) → site_password      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Features:**
-- Convenient biometric unlock
-- CLI compatibility maintained (user knows master_password)
-- master_password stored encrypted (cannot decrypt without PRF key)
-
 ---
 
 ## Storage Schema
@@ -144,14 +104,12 @@ interface StorageData {
   seedExported: boolean;
 
   // Unlock method
-  unlockMethod: 'password' | 'prf' | 'hybrid';
+  unlockMethod: 'password' | 'prf';
 
-  // PRF mode config (prf, hybrid)
+  // PRF mode config
   prf?: {
     credentialId: string;  // base64
     salt: string;          // base64
-    // hybrid mode only
-    encryptedPassword?: string;  // base64, master_password encrypted with PRF key
   };
 
   // Other
@@ -312,25 +270,21 @@ async function detectPrfSupport(): Promise<boolean> {
 - [x] PRF support detection function (`detectPrfSupport`)
 - [x] PRF key derivation utility (`derivePrfKey`)
 
-### Phase 2: PRF-only Mode
+### Phase 2: PRF-only Mode ✅
 - [x] Passkey creation flow (`createPasskey`)
 - [x] PRF-based seed encryption/decryption
 - [x] PRF unlock service (`unlockSessionWithPrf`, `setupSessionWithPrf`)
-- [ ] PRF setup UI
+- [x] PRF setup UI
 
-### Phase 3: Mode Selection UI
-- [ ] First-run mode selection screen
-- [ ] PRF unsupported fallback UI
-- [ ] Mode-specific unlock screen branching
+### Phase 3: Mode Selection UI ✅
+- [x] First-run mode selection screen
+- [x] PRF unsupported fallback UI
+- [x] Mode-specific unlock screen branching
 
 ### Phase 4: Cross-browser Support
 - [ ] Firefox PRF user handling
 - [ ] Seed import mode switch
 - [ ] Error messages and guidance
-
-### Phase 5: Hybrid Mode (Optional)
-- [ ] Password input + PRF encryption
-- [ ] CLI compatible mode
 
 ---
 
