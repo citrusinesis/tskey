@@ -3,11 +3,11 @@
 ## What is this?
 
 Vaultless password manager browser extension based on Cloudflare's gokey algorithm.
-Generates passwords deterministically using PBKDF2 + AES-CTR.
+Generates passwords deterministically using seed-based HKDF + AES-CTR.
 
 ## Tech Stack
 
-- **Core**: TypeScript, Web Crypto API (PBKDF2, AES-CTR)
+- **Core**: TypeScript, Web Crypto API (HKDF, AES-CTR, AES-GCM)
 - **Extension**: Manifest V3, React, Tailwind, WXT
 - **Monorepo**: pnpm workspace
 - **Dev Environment**: Nix flake
@@ -53,32 +53,29 @@ gokey-ts/
 
 ## Core Algorithm (gokey compatible)
 
-### Password-only Mode
 ```typescript
-// PBKDF2(password, realm) → AES-CTR key
-const key = await PBKDF2(password, realm, 4096, 32, "SHA-256");
-const drng = AES-CTR(key, zeroIV);
-```
-
-### Seed Mode (higher entropy)
-```typescript
-// 1. Generate & encrypt seed (one-time setup)
+// 1. Initial setup: Generate & encrypt seed
 const seed = generateSeed();                    // 256 random bytes
 const encrypted = encryptSeed(seed, password);  // AES-GCM
+// Store encrypted seed in chrome.storage
 
-// 2. Decrypt seed & derive key with HKDF
+// 2. On unlock: Decrypt seed
 const seed = decryptSeed(encrypted, password);
+
+// 3. Generate password: HKDF + AES-CTR
 const salt = seed[0:12] + seed[-16:];           // 28 bytes
 const key = HKDF(SHA256, seed, salt, realm);
 const drng = AES-CTR(key, zeroIV);
+const password = mapToCharset(drng.read(length));
 ```
 
 Key points:
-- Password-only: PBKDF2-SHA256, 4096 iterations
-- Seed mode: HKDF-SHA256 with encrypted seed
+- 256-bit random seed for high entropy
+- Seed encrypted with AES-GCM (master password)
+- HKDF-SHA256 for per-realm key derivation
 - AES-256-CTR with 16-byte zero IV
 - Rejection sampling for uniform character distribution
-- gokey CLI compatible output
+- gokey CLI compatible: `gokey -p "master" -s seed.key -r realm`
 
 ## Security Rules
 
@@ -123,15 +120,16 @@ Background → Content: { type: 'FILL', payload: { password } }
 
 ### Completed
 - [x] `packages/core/` - Crypto logic (82 tests passing)
-  - Password-only mode (PBKDF2 + AES-CTR)
-  - Seed mode (HKDF + AES-CTR)
+  - HKDF + AES-CTR password derivation
   - Seed generation & encryption (AES-GCM)
 - [x] `packages/extension/src/domain/messaging/` - Type-safe message protocol
 - [x] `packages/extension/src/domain/session/` - Session management with seed support
   - store.ts: In-memory master password & decrypted seed
-  - service.ts: unlockSession, setupSeed, hasSeedStored
-  - ui/: UnlockPage (with seed setup), useSession hook
-- [x] `packages/extension/src/domain/storage/` - Chrome storage wrapper for encrypted seed
+  - service.ts: unlockSession, setupSeed, exportSeed, importSeed
+  - ui/: SetupPage, UnlockPage, SeedExportReminder, useSession hook
+- [x] `packages/extension/src/domain/storage/` - Chrome storage wrapper
+  - Encrypted seed (AES-GCM), sites config, settings
+  - getEffectiveRealm() for versioned passwords
 - [x] `packages/extension/src/domain/generator/` - Password generation
   - service.ts: @tskey/core wrapper (supports seed mode)
   - ui/: GeneratorPage, useGenerator hook
@@ -145,8 +143,19 @@ Background → Content: { type: 'FILL', payload: { password } }
 - [x] `packages/extension/src/lib/` - Utilities (clipboard auto-clear)
 
 ### Pending
+
+#### Next: Biometric Authentication (WebAuthn PRF)
+- [ ] Multi-mode unlock system (`password` | `prf` | `hybrid`)
+- [ ] PRF support detection
+- [ ] Passkey creation + PRF key derivation
+- [ ] Mode selection UI (first run)
+- [ ] Cross-browser fallback (Firefox → password mode)
+- See: `docs/03-Biometric-Authentication.md`
+
+#### Later
 - [ ] Options page (settings UI)
-- [ ] Site-specific config storage
+- [ ] Auto-lock timer implementation
+- [ ] E2E tests for extension
 
 ## Commands
 
@@ -170,7 +179,7 @@ nix develop --command pnpm build
 ## Tests
 
 ```bash
-# Run all core tests (65 tests)
+# Run all core tests (82 tests)
 nix develop --command pnpm --filter @tskey/core test
 ```
 
