@@ -22,9 +22,13 @@ export interface SiteConfig {
 export interface StorageSettings {
   autoLockMinutes: number;
   autoFillEnabled: boolean;
+  clipboardClearSeconds: number;
+  defaultPasswordLength: number;
 }
 
 export const DEFAULT_SETTINGS: StorageSettings = {
   autoLockMinutes: 15,
   autoFillEnabled: true,
+  clipboardClearSeconds: 30,
+  defaultPasswordLength: 20,
 };
