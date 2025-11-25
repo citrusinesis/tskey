@@ -1,11 +1,15 @@
 import { generate, getRealm } from '../domain/generator';
 import { createMessageRouter, type Message, type MessageHandler } from '../domain/messaging';
 import {
+  exportSeed,
   getDecryptedSeed,
   getMasterPassword,
   hasSeedStored,
+  importSeed,
+  isSeedExported,
   isUnlocked,
   lock,
+  markSeedExported,
   setupSeed,
   unlockSession,
 } from '../domain/session';
@@ -31,7 +35,8 @@ const handlers: Record<Message['type'], MessageHandler> = {
 
   GET_STATUS: async () => {
     const seedExists = await hasSeedStored();
-    return { success: true, data: { isUnlocked: isUnlocked(), hasSeed: seedExists } };
+    const seedExported = await isSeedExported();
+    return { success: true, data: { isUnlocked: isUnlocked(), hasSeed: seedExists, seedExported } };
   },
 
   GENERATE: async (message) => {
@@ -71,6 +76,43 @@ const handlers: Record<Message['type'], MessageHandler> = {
   HAS_SEED: async () => {
     const exists = await hasSeedStored();
     return { success: true, data: { hasSeed: exists } };
+  },
+
+  EXPORT_SEED: async () => {
+    try {
+      const seed = await exportSeed();
+      return { success: true, data: { seed: Array.from(seed) } };
+    } catch {
+      return { success: false, error: 'Session not unlocked' };
+    }
+  },
+
+  IMPORT_SEED: async (message) => {
+    if (message.type !== 'IMPORT_SEED') {
+      return { success: false, error: 'Invalid message' };
+    }
+
+    try {
+      const seed = new Uint8Array(message.payload.seed);
+      await importSeed(seed, message.payload.password);
+      return { success: true, data: undefined };
+    } catch {
+      return { success: false, error: 'Failed to import seed' };
+    }
+  },
+
+  GET_SEED_EXPORTED: async () => {
+    const exported = await isSeedExported();
+    return { success: true, data: { seedExported: exported } };
+  },
+
+  SET_SEED_EXPORTED: async (message) => {
+    if (message.type !== 'SET_SEED_EXPORTED') {
+      return { success: false, error: 'Invalid message' };
+    }
+
+    await markSeedExported();
+    return { success: true, data: undefined };
   },
 
   FILL: async () => {

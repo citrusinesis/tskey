@@ -1,9 +1,11 @@
 import type {
+  ExportSeedResult,
   GenerateResult,
   HasSeedResult,
   Message,
   RealmResult,
   Response,
+  SeedExportedResult,
   SessionStatus,
 } from './types';
 
@@ -44,4 +46,20 @@ export async function sendFillToTab(tabId: number, password: string): Promise<Re
     type: 'FILL',
     payload: { password },
   });
+}
+
+export async function exportSeed(): Promise<Response<ExportSeedResult>> {
+  return sendMessage({ type: 'EXPORT_SEED' });
+}
+
+export async function importSeed(seed: number[], password: string): Promise<Response<void>> {
+  return sendMessage({ type: 'IMPORT_SEED', payload: { seed, password } });
+}
+
+export async function getSeedExported(): Promise<Response<SeedExportedResult>> {
+  return sendMessage({ type: 'GET_SEED_EXPORTED' });
+}
+
+export async function setSeedExported(exported: boolean): Promise<Response<void>> {
+  return sendMessage({ type: 'SET_SEED_EXPORTED', payload: { exported } });
 }
