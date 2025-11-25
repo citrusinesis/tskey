@@ -49,8 +49,11 @@ gokey-ts/
 │   │   │   ├── realm.ts          # URL → realm 추출 (tldts)
 │   │   │   ├── types.ts          # 공통 타입 정의
 │   │   │   └── index.ts          # public exports
-│   │   ├── tests/
-│   │   │   └── vectors.test.ts   # gokey 호환성 테스트 벡터
+│   │   ├── test/
+│   │   │   ├── csprng.test.ts    # DRBG 테스트
+│   │   │   ├── charset.test.ts   # 문자셋 테스트
+│   │   │   ├── password.test.ts  # 패스워드 생성 테스트
+│   │   │   └── realm.test.ts     # realm 추출 테스트
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
@@ -448,10 +451,11 @@ chrome.runtime.sendMessage({
 **Goal**: 기본 패스워드 생성 및 복사
 
 - [x] 프로젝트 셋업 (모노레포, Nix flake)
-- [ ] `@tskey/core` 패키지
-  - [ ] PBKDF2 + AES-CTR DRBG 구현
-  - [ ] 패스워드 생성 로직
-  - [ ] gokey 호환성 테스트 벡터
+- [x] `@tskey/core` 패키지
+  - [x] PBKDF2 + AES-CTR DRBG 구현
+  - [x] 패스워드 생성 로직
+  - [x] Realm 추출 (tldts)
+  - [x] 테스트 (65 tests passing)
 - [ ] Extension 기본 구조 (WXT)
   - [ ] Service Worker (세션 관리)
   - [ ] Popup UI (잠금해제 → 패스워드 생성 → 복사)
@@ -479,30 +483,18 @@ chrome.runtime.sendMessage({
 
 ---
 
-## Test Vectors
+## Tests
 
-gokey CLI와의 호환성 검증을 위한 테스트 벡터:
+`packages/core/test/` 디렉토리에 65개의 테스트 케이스:
 
-```typescript
-// packages/core/tests/vectors.test.ts
+- **csprng.test.ts** (10 tests): DRBG 결정론성, 고유성, gokey 호환성
+- **charset.test.ts** (13 tests): 문자셋 상수, rejection sampling
+- **password.test.ts** (15 tests): 패스워드 생성, spec 준수
+- **realm.test.ts** (27 tests): URL 파싱, eTLD+1 추출, 커스텀 매핑, 버전
 
-const TEST_VECTORS = [
-  {
-    masterPassword: "test-master-password",
-    realm: "example.com",
-    spec: { length: 10 },
-    expected: "???", // gokey CLI로 생성한 값
-  },
-  {
-    masterPassword: "test-master-password",
-    realm: "github.com",
-    spec: { length: 16 },
-    expected: "???",
-  },
-];
-
-// 테스트 벡터 생성 방법:
-// $ gokey -p "test-master-password" -r "example.com" -l 10
+```bash
+# 테스트 실행
+nix develop --command pnpm --filter @tskey/core test
 ```
 
 ---

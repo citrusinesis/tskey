@@ -18,12 +18,13 @@ Generates passwords deterministically using gokey's PBKDF2 + AES-CTR algorithm.
 gokey-ts/
 ├── packages/
 │   ├── core/           # Crypto logic (platform-agnostic)
-│   │   └── src/
-│   │       ├── csprng.ts     # PBKDF2 + AES-CTR DRBG
-│   │       ├── password.ts
-│   │       ├── charset.ts
-│   │       ├── realm.ts      # Domain → realm extraction (tldts)
-│   │       └── types.ts
+│   │   ├── src/
+│   │   │   ├── csprng.ts     # PBKDF2 + AES-CTR DRBG
+│   │   │   ├── password.ts
+│   │   │   ├── charset.ts
+│   │   │   ├── realm.ts      # Domain → realm extraction (tldts)
+│   │   │   └── types.ts
+│   │   └── test/             # Vitest tests
 │   └── extension/      # Chrome extension (WXT)
 │       └── src/
 │           └── entrypoints/
@@ -97,14 +98,18 @@ Background → Popup: { success: true, data: { password } }
 Background → Content: { type: 'FILL_PASSWORD', payload: { password } }
 ```
 
-## Implementation Order
+## Implementation Status
 
-1. `packages/core/src/csprng.ts` - PBKDF2 + AES-CTR DRBG
-2. `packages/core/src/charset.ts` - Character set (94 chars, gokey compatible)
-3. `packages/core/src/password.ts` - Password generation
-4. `packages/core/tests/vectors.test.ts` - gokey CLI compatibility tests
-5. `packages/extension/src/entrypoints/background.ts` - Service worker + session
-6. `packages/extension/src/entrypoints/popup/` - Basic UI
+### Completed
+- [x] `packages/core/src/csprng.ts` - PBKDF2 + AES-CTR DRBG
+- [x] `packages/core/src/charset.ts` - Character set (94 chars, gokey order: 1234567890)
+- [x] `packages/core/src/password.ts` - Password generation
+- [x] `packages/core/src/realm.ts` - Domain extraction (tldts)
+- [x] `packages/core/test/*.test.ts` - 65 tests passing
+
+### In Progress
+- [ ] `packages/extension/src/entrypoints/background.ts` - Service worker + session
+- [ ] `packages/extension/src/entrypoints/popup/` - Basic UI
 
 ## Commands
 
@@ -125,12 +130,18 @@ nix develop --command pnpm --filter @tskey/extension dev
 nix develop --command pnpm build
 ```
 
-## Test Vectors (generate with gokey CLI)
+## Tests
 
 ```bash
-gokey -p "test-master-password" -r "example.com" -l 10
-gokey -p "test-master-password" -r "github.com" -l 16
+# Run all core tests (65 tests)
+nix develop --command pnpm --filter @tskey/core test
 ```
+
+Test files in `packages/core/test/`:
+- `csprng.test.ts` - DRBG determinism, uniqueness, gokey compatibility
+- `charset.test.ts` - Charset constants, rejection sampling
+- `password.test.ts` - Password generation, spec compliance
+- `realm.test.ts` - URL parsing, eTLD+1 extraction, custom mappings
 
 ## References
 
@@ -184,4 +195,5 @@ gokey -p "test-master-password" -r "github.com" -l 16
 - **Atomic commits**: One logical change per commit
 - **Update docs with code**: Every commit must include relevant doc updates
 - Keep CLAUDE.md and docs/ in sync with implementation
+- If has breakthough change, write documentation in docs/ in order
 - Commit message format: `type(scope): description`
