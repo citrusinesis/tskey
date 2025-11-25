@@ -1,6 +1,16 @@
+export type UnlockMethod = 'password' | 'prf' | 'hybrid';
+
+export interface PrfConfig {
+  credentialId: string;
+  salt: string;
+  encryptedPassword?: string;
+}
+
 export interface StorageData {
   encryptedSeed?: string;
   seedExported?: boolean;
+  unlockMethod?: UnlockMethod;
+  prf?: PrfConfig;
   sites: Record<string, SiteConfig>;
   settings: StorageSettings;
 }

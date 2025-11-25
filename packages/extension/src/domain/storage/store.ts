@@ -1,4 +1,4 @@
-import type { SiteConfig, StorageData, StorageSettings } from './types';
+import type { PrfConfig, SiteConfig, StorageSettings, UnlockMethod } from './types';
 import { DEFAULT_SETTINGS } from './types';
 
 export async function getEncryptedSeed(): Promise<Uint8Array | null> {
@@ -27,6 +27,28 @@ export async function getSeedExported(): Promise<boolean> {
 
 export async function setSeedExported(exported: boolean): Promise<void> {
   await chrome.storage.local.set({ seedExported: exported });
+}
+
+export async function getUnlockMethod(): Promise<UnlockMethod> {
+  const result = await chrome.storage.local.get('unlockMethod');
+  return result.unlockMethod ?? 'password';
+}
+
+export async function setUnlockMethod(method: UnlockMethod): Promise<void> {
+  await chrome.storage.local.set({ unlockMethod: method });
+}
+
+export async function getPrfConfig(): Promise<PrfConfig | null> {
+  const result = await chrome.storage.local.get('prf');
+  return result.prf ?? null;
+}
+
+export async function setPrfConfig(config: PrfConfig): Promise<void> {
+  await chrome.storage.local.set({ prf: config });
+}
+
+export async function clearPrfConfig(): Promise<void> {
+  await chrome.storage.local.remove('prf');
 }
 
 export async function getSettings(): Promise<StorageSettings> {
