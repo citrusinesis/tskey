@@ -39,15 +39,18 @@ gokey-ts/
 │           │   │   ├── store.ts, service.ts
 │           │   │   └── ui/             # UnlockPage, useSession
 │           │   ├── prf/                # WebAuthn PRF utilities
-│           │   │   └── detect.ts       # PRF support detection
+│           │   │   └── detect.ts       # PRF support detection (getClientCapabilities)
+│           │   ├── settings/           # Settings management
+│           │   │   └── ui/useSettings.ts
 │           │   ├── messaging/          # Message protocol types & handlers
 │           │   └── storage/            # Chrome storage wrapper (encrypted seed, PRF config)
 │           ├── components/   # Shared React components (PasswordInput, CopyButton)
 │           ├── lib/          # Utilities (clipboard)
 │           └── entrypoints/  # WXT entry points (thin layer)
-│               ├── background.ts
+│               ├── background.ts  # Message router + auto-lock timer
 │               ├── content.ts
-│               └── popup/App.tsx
+│               ├── popup/App.tsx
+│               └── options/App.tsx  # Settings UI
 ├── pnpm-workspace.yaml
 ├── flake.nix
 └── package.json
@@ -100,7 +103,10 @@ Key points:
     }
   },
   settings: {
-    autoFillEnabled: true
+    autoLockMinutes: 15,        // 0 = never
+    autoFillEnabled: true,
+    clipboardClearSeconds: 30,  // 0 = never
+    defaultPasswordLength: 20
   }
 }
 ```
@@ -143,27 +149,29 @@ Background → Content: { type: 'FILL', payload: { password } }
   - ui/: GeneratorPage, useGenerator hook
 - [x] `packages/extension/src/domain/autofill/` - Form detection & fill
   - ui/: Inline dropdown below password fields (Shadow DOM)
-- [x] `packages/extension/src/entrypoints/` - Thin WXT entry points
-  - background.ts: Message router (delegates to domain services)
+- [x] `packages/extension/src/domain/settings/` - Settings management
+  - ui/useSettings.ts: React hook for settings CRUD
+- [x] `packages/extension/src/entrypoints/` - WXT entry points
+  - background.ts: Message router + auto-lock timer (Chrome alarms)
   - content.ts: Password field detection & dropdown trigger
   - popup/App.tsx: Composes domain UIs
+  - options/App.tsx: Full settings UI
 - [x] `packages/extension/src/components/` - Shared UI (PasswordInput, CopyButton)
 - [x] `packages/extension/src/lib/` - Utilities (clipboard auto-clear)
 
 ### Pending
 
-#### Next: Biometric Authentication (WebAuthn PRF)
+#### Completed: Biometric Authentication (WebAuthn PRF)
 - [x] Multi-mode unlock types (`password` | `prf`)
-- [x] PRF support detection (`detectPrfSupport()`)
+- [x] PRF support detection (`detectPrfSupport()` with `getClientCapabilities()`)
 - [x] Passkey creation + PRF key derivation (`createPasskey`, `derivePrfKey`)
 - [x] PRF-based seed encryption/decryption
 - [x] Mode selection UI (first run)
-- [ ] Cross-browser fallback (Firefox → password mode)
 - See: `docs/03-Biometric-Authentication.md`
 
 #### Later
-- [ ] Options page (settings UI)
-- [ ] Auto-lock timer implementation
+- [x] Options page (settings UI)
+- [x] Auto-lock timer implementation (Chrome alarms API)
 - [ ] E2E tests for extension
 
 ## Commands
