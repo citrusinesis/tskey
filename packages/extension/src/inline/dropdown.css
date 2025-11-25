@@ -1,0 +1,116 @@
+.tskey-dropdown {
+  position: absolute;
+  z-index: 2147483647;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  padding: 12px;
+  min-width: 280px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: #374151;
+}
+
+.tskey-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.tskey-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+}
+
+.tskey-realm {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tskey-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+.tskey-close:hover {
+  color: #374151;
+}
+
+.tskey-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tskey-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.15s;
+}
+
+.tskey-btn-primary {
+  background: #2563eb;
+  color: white;
+}
+
+.tskey-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.tskey-btn-primary:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.tskey-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.tskey-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.tskey-unlock {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.tskey-unlock-text {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.tskey-unlock-btn {
+  background: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.tskey-unlock-btn:hover {
+  background: #1d4ed8;
+}
+
+.tskey-loading {
+  text-align: center;
+  padding: 8px 0;
+  color: #6b7280;
+  font-size: 13px;
+}
