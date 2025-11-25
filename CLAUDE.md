@@ -1,0 +1,187 @@
+# CLAUDE.md - Gokey Browser Extension
+
+## What is this?
+
+Vaultless password manager browser extension based on Cloudflare's gokey.
+Generates passwords deterministically using gokey's PBKDF2 + AES-CTR algorithm.
+
+## Tech Stack
+
+- **Core**: TypeScript, Web Crypto API (PBKDF2, AES-CTR)
+- **Extension**: Manifest V3, React, Tailwind, WXT
+- **Monorepo**: pnpm workspace
+- **Dev Environment**: Nix flake
+
+## Project Structure
+
+```
+gokey-ts/
+├── packages/
+│   ├── core/           # Crypto logic (platform-agnostic)
+│   │   └── src/
+│   │       ├── csprng.ts     # PBKDF2 + AES-CTR DRBG
+│   │       ├── password.ts
+│   │       ├── charset.ts
+│   │       ├── realm.ts      # Domain → realm extraction (tldts)
+│   │       └── types.ts
+│   └── extension/      # Chrome extension (WXT)
+│       └── src/
+│           └── entrypoints/
+│               ├── background.ts   # Service Worker
+│               ├── popup/          # React UI
+│               ├── content.ts      # Form detection & autofill
+│               └── options/        # Settings page
+├── pnpm-workspace.yaml
+├── flake.nix
+└── package.json
+```
+
+## Core Algorithm (gokey compatible)
+
+gokey uses PBKDF2 + AES-CTR for deterministic random byte generation:
+
+```typescript
+// 1. Derive key from password + realm
+const key = await PBKDF2(password, realm, 4096, 32, "SHA-256");
+
+// 2. Create AES-CTR cipher with zero IV
+const cipher = await AES-CTR(key, zeroIV);
+
+// 3. Generate deterministic bytes by encrypting zeros
+const bytes = cipher.encrypt(new Uint8Array(length));
+
+// 4. Map bytes to charset with rejection sampling
+const password = mapToCharset(bytes, spec);
+```
+
+Key points:
+
+- PBKDF2-SHA256 with 4096 iterations
+- Salt = realm string (password-only mode)
+- AES-256-CTR with 16-byte zero IV
+- Rejection sampling for uniform character distribution
+- gokey CLI compatible output
+
+## Security Rules
+
+1. **NEVER store** master password or generated passwords
+2. Master password lives **only in Service Worker memory**
+3. Content Scripts **cannot access** master password directly
+4. Auto-lock after inactivity (default 15min)
+5. Clear clipboard after copy (30s)
+
+## Storage (chrome.storage.local)
+
+```typescript
+// Only store site configs, NOT passwords
+{
+  sites: {
+    "github.com": {
+      realm: "github.com",
+      spec: { length: 20, upper: 2, lower: 2, digits: 2, special: 2 },
+      version: 1
+    }
+  },
+  settings: {
+    autoLockMinutes: 15,
+    autoFillEnabled: true
+  }
+}
+```
+
+## Message Flow
+
+```
+Popup → Background: { type: 'GENERATE_PASSWORD', payload: { realm } }
+Background → Popup: { success: true, data: { password } }
+Background → Content: { type: 'FILL_PASSWORD', payload: { password } }
+```
+
+## Implementation Order
+
+1. `packages/core/src/csprng.ts` - PBKDF2 + AES-CTR DRBG
+2. `packages/core/src/charset.ts` - Character set (94 chars, gokey compatible)
+3. `packages/core/src/password.ts` - Password generation
+4. `packages/core/tests/vectors.test.ts` - gokey CLI compatibility tests
+5. `packages/extension/src/entrypoints/background.ts` - Service worker + session
+6. `packages/extension/src/entrypoints/popup/` - Basic UI
+
+## Commands
+
+```bash
+# Enter Nix dev environment
+nix develop
+
+# Install dependencies
+nix develop --command pnpm install
+
+# Run core tests
+nix develop --command pnpm --filter @tskey/core test
+
+# Start extension dev server
+nix develop --command pnpm --filter @tskey/extension dev
+
+# Build all
+nix develop --command pnpm build
+```
+
+## Test Vectors (generate with gokey CLI)
+
+```bash
+gokey -p "test-master-password" -r "example.com" -l 10
+gokey -p "test-master-password" -r "github.com" -l 16
+```
+
+## References
+
+- gokey source: https://github.com/cloudflare/gokey
+- gokey algorithm: https://github.com/cloudflare/gokey/blob/main/csprng.go
+- Web Crypto API: https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto
+- MV3 docs: https://developer.chrome.com/docs/extensions/mv3/
+- WXT: https://wxt.dev/
+
+## Code Style
+
+### TypeScript
+- Strict mode (`strict: true`, `noUncheckedIndexedAccess: true`)
+- **NEVER use `any`** - all code must be strictly typed
+- Prefer explicit `undefined` checks over truthy checks for type narrowing
+
+### Functional Programming
+- Use `map`, `filter`, `reduce` over imperative loops
+- Prefer pure functions, avoid side effects
+- Use function composition and pipelines
+
+### Comments
+- **NO explanatory comments** - code should be self-documenting
+- Use descriptive function/variable names instead of comments
+- Only allowed comments:
+  - JSDoc for public API (`/** ... */`)
+  - TODO/FIXME with issue reference
+  - Regulatory/legal comments
+- Comment format (when needed):
+  ```typescript
+  /** Single line JSDoc for exports */
+
+  /**
+   * Multi-line JSDoc for complex public APIs
+   * @param x - Description
+   * @returns Description
+   */
+
+  // TODO(#123): Brief description
+  ```
+
+### Error Handling
+- Explicit throws or Result pattern
+- No silent failures
+
+### Testing
+- Vitest for all tests
+
+## Git Workflow
+
+- **Atomic commits**: One logical change per commit
+- **Update docs with code**: Every commit must include relevant doc updates
+- Keep CLAUDE.md and docs/ in sync with implementation
+- Commit message format: `type(scope): description`
