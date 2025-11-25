@@ -6,7 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'TSKey Password Manager',
     description: 'Vaultless password manager using deterministic key derivation',
-    permissions: ['storage', 'activeTab', 'tabs', 'clipboardWrite'],
+    permissions: ['storage', 'activeTab', 'tabs', 'clipboardWrite', 'alarms'],
     host_permissions: ['<all_urls>'],
   },
 });
