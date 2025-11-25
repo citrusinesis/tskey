@@ -52,10 +52,7 @@ export async function createPasskey(userId: string): Promise<CreatePasskeyResult
   return { credentialId, salt: saltBase64 };
 }
 
-export async function derivePrfKey(
-  credentialId: string,
-  salt: string,
-): Promise<DeriveKeyResult> {
+export async function derivePrfKey(credentialId: string, salt: string): Promise<DeriveKeyResult> {
   const saltBytes = base64ToBytes(salt);
   const credentialIdBytes = base64ToBytes(credentialId);
 

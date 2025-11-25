@@ -89,8 +89,11 @@ export function SetupPage({ onSetup, onSetupWithPrf, onImport, isLoading, error 
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-gray-500">Seed File</label>
+          <label htmlFor="seed-file" className="mb-1 block text-xs text-gray-500">
+            Seed File
+          </label>
           <input
+            id="seed-file"
             type="file"
             accept=".key"
             onChange={handleFileSelect}

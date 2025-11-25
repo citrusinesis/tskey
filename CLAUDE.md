@@ -131,8 +131,8 @@ Background → Content: { type: 'FILL', payload: { password } }
   - ui/: SetupPage, UnlockPage, SeedExportReminder, useSession hook
 - [x] `packages/extension/src/domain/storage/` - Chrome storage wrapper
   - Encrypted seed (AES-GCM), sites config, settings
-  - UnlockMethod type (`password` | `prf` | `hybrid`)
-  - PrfConfig storage (credentialId, salt, encryptedPassword)
+  - UnlockMethod type (`password` | `prf`)
+  - PrfConfig storage (credentialId, salt)
   - getEffectiveRealm() for versioned passwords
 - [x] `packages/extension/src/domain/prf/` - WebAuthn PRF utilities
   - detectPrfSupport(): Browser PRF support detection
@@ -153,11 +153,11 @@ Background → Content: { type: 'FILL', payload: { password } }
 ### Pending
 
 #### Next: Biometric Authentication (WebAuthn PRF)
-- [x] Multi-mode unlock types (`password` | `prf` | `hybrid`)
+- [x] Multi-mode unlock types (`password` | `prf`)
 - [x] PRF support detection (`detectPrfSupport()`)
 - [x] Passkey creation + PRF key derivation (`createPasskey`, `derivePrfKey`)
-- [ ] PRF-based seed encryption/decryption
-- [ ] Mode selection UI (first run)
+- [x] PRF-based seed encryption/decryption
+- [x] Mode selection UI (first run)
 - [ ] Cross-browser fallback (Firefox → password mode)
 - See: `docs/03-Biometric-Authentication.md`
 
@@ -252,6 +252,11 @@ Test files in `packages/core/test/`:
   - One feature or bug fix = 1 commit
   - Separate refactoring from feature additions
 - Commit message format: `type(scope): description`
+- **ALWAYS run lint and format before committing**:
+  ```bash
+  nix develop --command pnpm lint
+  nix develop --command pnpm format
+  ```
 
 ### Documentation Sync (CRITICAL)
 

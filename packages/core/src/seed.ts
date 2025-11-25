@@ -29,7 +29,10 @@ export async function encryptSeed(seed: Uint8Array, password: string): Promise<U
   return result;
 }
 
-export async function decryptSeed(encryptedSeed: Uint8Array, password: string): Promise<Uint8Array> {
+export async function decryptSeed(
+  encryptedSeed: Uint8Array,
+  password: string,
+): Promise<Uint8Array> {
   if (encryptedSeed.length !== SEED_SIZE + TAG_SIZE) {
     throw new Error(`Encrypted seed must be ${SEED_SIZE + TAG_SIZE} bytes`);
   }

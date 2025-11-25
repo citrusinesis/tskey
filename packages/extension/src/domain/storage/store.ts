@@ -1,8 +1,17 @@
 import type { PrfConfig, SiteConfig, StorageSettings, UnlockMethod } from './types';
 import { DEFAULT_SETTINGS } from './types';
 
+interface StorageResult {
+  encryptedSeed?: string;
+  seedExported?: boolean;
+  unlockMethod?: UnlockMethod;
+  prf?: PrfConfig;
+  settings?: StorageSettings;
+  sites?: Record<string, SiteConfig>;
+}
+
 export async function getEncryptedSeed(): Promise<Uint8Array | null> {
-  const result = await chrome.storage.local.get('encryptedSeed');
+  const result: StorageResult = await chrome.storage.local.get('encryptedSeed');
   if (!result.encryptedSeed) return null;
   return base64ToBytes(result.encryptedSeed);
 }
@@ -16,12 +25,12 @@ export async function clearEncryptedSeed(): Promise<void> {
 }
 
 export async function hasEncryptedSeed(): Promise<boolean> {
-  const result = await chrome.storage.local.get('encryptedSeed');
+  const result: StorageResult = await chrome.storage.local.get('encryptedSeed');
   return !!result.encryptedSeed;
 }
 
 export async function getSeedExported(): Promise<boolean> {
-  const result = await chrome.storage.local.get('seedExported');
+  const result: StorageResult = await chrome.storage.local.get('seedExported');
   return result.seedExported === true;
 }
 
@@ -30,7 +39,7 @@ export async function setSeedExported(exported: boolean): Promise<void> {
 }
 
 export async function getUnlockMethod(): Promise<UnlockMethod> {
-  const result = await chrome.storage.local.get('unlockMethod');
+  const result: StorageResult = await chrome.storage.local.get('unlockMethod');
   return result.unlockMethod ?? 'password';
 }
 
@@ -39,7 +48,7 @@ export async function setUnlockMethod(method: UnlockMethod): Promise<void> {
 }
 
 export async function getPrfConfig(): Promise<PrfConfig | null> {
-  const result = await chrome.storage.local.get('prf');
+  const result: StorageResult = await chrome.storage.local.get('prf');
   return result.prf ?? null;
 }
 
@@ -52,7 +61,7 @@ export async function clearPrfConfig(): Promise<void> {
 }
 
 export async function getSettings(): Promise<StorageSettings> {
-  const result = await chrome.storage.local.get('settings');
+  const result: StorageResult = await chrome.storage.local.get('settings');
   return { ...DEFAULT_SETTINGS, ...result.settings };
 }
 
@@ -62,7 +71,7 @@ export async function setSettings(settings: Partial<StorageSettings>): Promise<v
 }
 
 export async function getSites(): Promise<Record<string, SiteConfig>> {
-  const result = await chrome.storage.local.get('sites');
+  const result: StorageResult = await chrome.storage.local.get('sites');
   return result.sites ?? {};
 }
 

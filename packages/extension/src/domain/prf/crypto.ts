@@ -1,9 +1,6 @@
 const NONCE_SIZE = 12;
 
-export async function encryptWithKey(
-  plaintext: Uint8Array,
-  key: Uint8Array,
-): Promise<Uint8Array> {
+export async function encryptWithKey(plaintext: Uint8Array, key: Uint8Array): Promise<Uint8Array> {
   const nonce = crypto.getRandomValues(new Uint8Array(NONCE_SIZE));
   const cryptoKey = await importKey(key);
 
@@ -20,10 +17,7 @@ export async function encryptWithKey(
   return result;
 }
 
-export async function decryptWithKey(
-  encrypted: Uint8Array,
-  key: Uint8Array,
-): Promise<Uint8Array> {
+export async function decryptWithKey(encrypted: Uint8Array, key: Uint8Array): Promise<Uint8Array> {
   const nonce = encrypted.slice(0, NONCE_SIZE);
   const ciphertext = encrypted.slice(NONCE_SIZE);
   const cryptoKey = await importKey(key);

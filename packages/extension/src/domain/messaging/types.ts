@@ -15,7 +15,10 @@ export type SetupWithPrfKeyMessage = {
 };
 export type HasSeedMessage = { type: 'HAS_SEED' };
 export type ExportSeedMessage = { type: 'EXPORT_SEED' };
-export type ImportSeedMessage = { type: 'IMPORT_SEED'; payload: { seed: number[]; password: string } };
+export type ImportSeedMessage = {
+  type: 'IMPORT_SEED';
+  payload: { seed: number[]; password: string };
+};
 export type GetSeedExportedMessage = { type: 'GET_SEED_EXPORTED' };
 export type SetSeedExportedMessage = { type: 'SET_SEED_EXPORTED'; payload: { exported: boolean } };
 

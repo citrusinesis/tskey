@@ -12,7 +12,7 @@ import {
   setSeedExported,
   setUnlockMethod,
 } from '../storage';
-import { getDecryptedSeed, getMasterPassword, isUnlocked, lock, unlock } from './store';
+import { getDecryptedSeed, unlock } from './store';
 
 export { getDecryptedSeed, getMasterPassword, isUnlocked, lock } from './store';
 
