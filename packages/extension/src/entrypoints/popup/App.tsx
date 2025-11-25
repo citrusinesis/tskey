@@ -58,6 +58,7 @@ function App() {
       return (
         <SetupPage
           onSetup={session.setupSeed}
+          onSetupWithPrf={session.setupWithPrf}
           onImport={session.importSeed}
           isLoading={session.isLoading}
           error={session.error}
@@ -67,7 +68,9 @@ function App() {
 
     return (
       <UnlockPage
+        unlockMethod={session.unlockMethod}
         onUnlock={session.unlock}
+        onUnlockWithPrf={session.unlockWithPrf}
         onImport={session.importSeed}
         isLoading={session.isLoading}
         error={session.error}
