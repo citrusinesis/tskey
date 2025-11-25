@@ -4,9 +4,9 @@ export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'Gokey Password Manager',
-    description: 'Vaultless password manager based on Cloudflare gokey',
-    permissions: ['storage', 'activeTab', 'clipboardWrite', 'alarms'],
+    name: 'TSKey Password Manager',
+    description: 'Vaultless password manager using deterministic key derivation',
+    permissions: ['storage', 'activeTab', 'tabs', 'clipboardWrite'],
     host_permissions: ['<all_urls>'],
   },
 });
