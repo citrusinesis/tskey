@@ -1,4 +1,4 @@
-import type { StorageData, StorageSettings } from './types';
+import type { SiteConfig, StorageData, StorageSettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
 
 export async function getEncryptedSeed(): Promise<Uint8Array | null> {
@@ -20,6 +20,15 @@ export async function hasEncryptedSeed(): Promise<boolean> {
   return !!result.encryptedSeed;
 }
 
+export async function getSeedExported(): Promise<boolean> {
+  const result = await chrome.storage.local.get('seedExported');
+  return result.seedExported === true;
+}
+
+export async function setSeedExported(exported: boolean): Promise<void> {
+  await chrome.storage.local.set({ seedExported: exported });
+}
+
 export async function getSettings(): Promise<StorageSettings> {
   const result = await chrome.storage.local.get('settings');
   return { ...DEFAULT_SETTINGS, ...result.settings };
@@ -28,6 +37,28 @@ export async function getSettings(): Promise<StorageSettings> {
 export async function setSettings(settings: Partial<StorageSettings>): Promise<void> {
   const current = await getSettings();
   await chrome.storage.local.set({ settings: { ...current, ...settings } });
+}
+
+export async function getSites(): Promise<Record<string, SiteConfig>> {
+  const result = await chrome.storage.local.get('sites');
+  return result.sites ?? {};
+}
+
+export async function getSiteConfig(realm: string): Promise<SiteConfig | null> {
+  const sites = await getSites();
+  return sites[realm] ?? null;
+}
+
+export async function setSiteConfig(realm: string, config: SiteConfig): Promise<void> {
+  const sites = await getSites();
+  await chrome.storage.local.set({ sites: { ...sites, [realm]: config } });
+}
+
+export async function incrementSiteVersion(realm: string): Promise<number> {
+  const config = await getSiteConfig(realm);
+  const newVersion = (config?.version ?? 0) + 1;
+  await setSiteConfig(realm, { realm, version: newVersion });
+  return newVersion;
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
