@@ -1,9 +1,8 @@
-export type UnlockMethod = 'password' | 'prf' | 'hybrid';
+export type UnlockMethod = 'password' | 'prf';
 
 export interface PrfConfig {
   credentialId: string;
   salt: string;
-  encryptedPassword?: string;
 }
 
 export interface StorageData {
