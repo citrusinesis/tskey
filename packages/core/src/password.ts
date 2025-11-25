@@ -1,11 +1,13 @@
 import { CHARSET, DIGITS, LOWER, randChar, SPECIAL, UPPER } from './charset';
-import { createDRNG } from './csprng';
+import { createDRNG, createDRNGWithSeed } from './csprng';
 import type { GenerateOptions, PasswordSpec } from './types';
 import { DEFAULT_SPEC } from './types';
 
 export async function generatePassword(options: GenerateOptions): Promise<string> {
   const spec = { ...DEFAULT_SPEC, ...options.spec };
-  const drng = await createDRNG(options.masterPassword, options.realm);
+  const drng = options.seed
+    ? await createDRNGWithSeed(options.seed, options.realm)
+    : await createDRNG(options.masterPassword, options.realm);
 
   while (true) {
     const bytes = await drng.read(spec.length * 4);
