@@ -28,17 +28,24 @@ gokey-ts/
 │   │   └── test/             # Vitest tests (82 tests)
 │   └── extension/      # Chrome extension (WXT)
 │       └── src/
-│           ├── entrypoints/  # WXT entry points (thin layer)
-│           │   ├── background.ts
-│           │   ├── content.ts
-│           │   └── popup/
-│           ├── session/      # Session domain (master password)
-│           ├── generator/    # Password generation domain
-│           ├── autofill/     # Form detection & autofill
-│           ├── inline/       # Inline dropdown (Shadow DOM)
-│           ├── popup/        # Popup UI (pages, components, hooks)
-│           ├── messaging/    # Message protocol types & handlers
-│           └── shared/       # Shared utilities (clipboard)
+│           ├── domain/       # Business logic + colocated UI
+│           │   ├── autofill/
+│           │   │   ├── detector.ts, filler.ts
+│           │   │   └── ui/dropdown.ts  # Inline dropdown (Shadow DOM)
+│           │   ├── generator/
+│           │   │   ├── service.ts
+│           │   │   └── ui/             # GeneratorPage, useGenerator
+│           │   ├── session/
+│           │   │   ├── store.ts, service.ts
+│           │   │   └── ui/             # UnlockPage, useSession
+│           │   ├── messaging/          # Message protocol types & handlers
+│           │   └── storage/            # Chrome storage wrapper (encrypted seed)
+│           ├── components/   # Shared React components (PasswordInput, CopyButton)
+│           ├── lib/          # Utilities (clipboard)
+│           └── entrypoints/  # WXT entry points (thin layer)
+│               ├── background.ts
+│               ├── content.ts
+│               └── popup/App.tsx
 ├── pnpm-workspace.yaml
 ├── flake.nix
 └── package.json
@@ -103,9 +110,12 @@ Key points:
 
 ```
 Popup/Content → Background: { type: 'UNLOCK', payload: { password } }
-Popup/Content → Background: { type: 'GET_STATUS' }
+Popup/Content → Background: { type: 'LOCK' }
+Popup/Content → Background: { type: 'GET_STATUS' }  → { isUnlocked, hasSeed }
 Popup/Content → Background: { type: 'GENERATE', payload: { realm } }
 Popup → Background: { type: 'GET_CURRENT_REALM' }
+Popup → Background: { type: 'SETUP_SEED', payload: { password } }
+Popup → Background: { type: 'HAS_SEED' }
 Background → Content: { type: 'FILL', payload: { password } }
 ```
 
@@ -116,18 +126,25 @@ Background → Content: { type: 'FILL', payload: { password } }
   - Password-only mode (PBKDF2 + AES-CTR)
   - Seed mode (HKDF + AES-CTR)
   - Seed generation & encryption (AES-GCM)
-- [x] `packages/extension/src/messaging/` - Type-safe message protocol
-- [x] `packages/extension/src/session/` - Master password in-memory store (persists until browser close)
-- [x] `packages/extension/src/generator/` - @tskey/core wrapper
-- [x] `packages/extension/src/entrypoints/background.ts` - Service worker message handler
-- [x] `packages/extension/src/popup/` - Unlock/Generator UI (auto-detects realm from active tab)
-- [x] `packages/extension/src/autofill/` - Form detection & fill
-- [x] `packages/extension/src/inline/` - Inline dropdown below password fields (Shadow DOM)
-- [x] `packages/extension/src/entrypoints/content.ts` - Content script with password field focus detection
-- [x] `packages/extension/src/shared/` - Clipboard auto-clear
+- [x] `packages/extension/src/domain/messaging/` - Type-safe message protocol
+- [x] `packages/extension/src/domain/session/` - Session management with seed support
+  - store.ts: In-memory master password & decrypted seed
+  - service.ts: unlockSession, setupSeed, hasSeedStored
+  - ui/: UnlockPage (with seed setup), useSession hook
+- [x] `packages/extension/src/domain/storage/` - Chrome storage wrapper for encrypted seed
+- [x] `packages/extension/src/domain/generator/` - Password generation
+  - service.ts: @tskey/core wrapper (supports seed mode)
+  - ui/: GeneratorPage, useGenerator hook
+- [x] `packages/extension/src/domain/autofill/` - Form detection & fill
+  - ui/: Inline dropdown below password fields (Shadow DOM)
+- [x] `packages/extension/src/entrypoints/` - Thin WXT entry points
+  - background.ts: Message router (delegates to domain services)
+  - content.ts: Password field detection & dropdown trigger
+  - popup/App.tsx: Composes domain UIs
+- [x] `packages/extension/src/components/` - Shared UI (PasswordInput, CopyButton)
+- [x] `packages/extension/src/lib/` - Utilities (clipboard auto-clear)
 
 ### Pending
-- [ ] Extension: Seed storage & management UI
 - [ ] Options page (settings UI)
 - [ ] Site-specific config storage
 

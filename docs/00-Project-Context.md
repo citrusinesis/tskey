@@ -43,46 +43,37 @@ gokey-ts/
 ├── packages/
 │   ├── core/                     # 암호화 핵심 로직 (순수 TS, 플랫폼 무관)
 │   │   ├── src/
-│   │   │   ├── csprng.ts         # PBKDF2 + AES-CTR DRBG (gokey 호환)
+│   │   │   ├── csprng.ts         # PBKDF2/HKDF + AES-CTR DRBG (gokey 호환)
+│   │   │   ├── seed.ts           # Seed 생성 & 암호화 (AES-GCM)
 │   │   │   ├── password.ts       # 패스워드 생성 로직
 │   │   │   ├── charset.ts        # 문자셋 정의 및 매핑
 │   │   │   ├── realm.ts          # URL → realm 추출 (tldts)
 │   │   │   ├── types.ts          # 공통 타입 정의
 │   │   │   └── index.ts          # public exports
-│   │   ├── test/
-│   │   │   ├── csprng.test.ts    # DRBG 테스트
-│   │   │   ├── charset.test.ts   # 문자셋 테스트
-│   │   │   ├── password.test.ts  # 패스워드 생성 테스트
-│   │   │   └── realm.test.ts     # realm 추출 테스트
-│   │   ├── package.json
-│   │   └── tsconfig.json
+│   │   └── test/                 # Vitest tests (82 tests)
 │   │
 │   └── extension/                # 브라우저 익스텐션 (WXT)
-│       ├── src/
-│       │   ├── entrypoints/
-│       │   │   ├── background.ts     # Service Worker
-│       │   │   ├── popup/            # 팝업 UI (React)
-│       │   │   │   ├── index.html
-│       │   │   │   ├── main.tsx
-│       │   │   │   ├── App.tsx
-│       │   │   │   └── style.css
-│       │   │   ├── content.ts        # Content Script
-│       │   │   └── options/          # 설정 페이지
-│       │   │       ├── index.html
-│       │   │       ├── main.tsx
-│       │   │       └── App.tsx
-│       │   ├── components/           # 공유 React 컴포넌트
-│       │   ├── hooks/                # React hooks
-│       │   ├── lib/                  # 유틸리티
-│       │   │   ├── session.ts        # 세션 관리
-│       │   │   └── storage.ts        # chrome.storage 래퍼
-│       │   └── assets/               # 아이콘 등
-│       ├── public/
-│       │   └── icon/
-│       ├── wxt.config.ts
-│       ├── tailwind.config.js
-│       ├── package.json
-│       └── tsconfig.json
+│       └── src/
+│           ├── domain/           # 비즈니스 로직 + colocated UI
+│           │   ├── autofill/
+│           │   │   ├── detector.ts, filler.ts
+│           │   │   └── ui/dropdown.ts    # Shadow DOM 드롭다운
+│           │   ├── generator/
+│           │   │   ├── service.ts        # @tskey/core 래퍼
+│           │   │   └── ui/               # GeneratorPage, useGenerator
+│           │   ├── session/
+│           │   │   ├── store.ts          # in-memory 세션 상태
+│           │   │   ├── service.ts        # unlock, setupSeed
+│           │   │   └── ui/               # UnlockPage, useSession
+│           │   ├── messaging/            # 메시지 프로토콜
+│           │   └── storage/              # chrome.storage (암호화된 seed)
+│           ├── components/       # 공유 React 컴포넌트
+│           ├── lib/              # 유틸리티 (clipboard)
+│           └── entrypoints/      # WXT 진입점 (thin layer)
+│               ├── background.ts
+│               ├── content.ts
+│               ├── popup/
+│               └── options/
 │
 ├── pnpm-workspace.yaml
 ├── package.json
@@ -90,6 +81,31 @@ gokey-ts/
 ├── flake.nix
 └── README.md
 ```
+
+### Extension Architecture
+
+Feature-Sliced Design 패턴을 따라 도메인별로 비즈니스 로직과 UI를 함께 배치:
+
+```
+domain/
+├── session/           # 세션 관리 도메인
+│   ├── store.ts       # 상태: masterPassword, decryptedSeed
+│   ├── service.ts     # 로직: unlockSession, setupSeed
+│   └── ui/
+│       ├── UnlockPage.tsx
+│       └── useSession.ts
+├── generator/         # 패스워드 생성 도메인
+│   ├── service.ts     # 로직: generate(realm, seed?)
+│   └── ui/
+│       ├── GeneratorPage.tsx
+│       └── useGenerator.ts
+└── ...
+```
+
+장점:
+- 기능별 응집도 ↑ (한 폴더에서 작업)
+- 도메인 경계 명확
+- 삭제/추가 용이 (폴더 단위)
 
 ### Data Flow
 
@@ -446,26 +462,29 @@ chrome.runtime.sendMessage({
 
 ## Implementation Phases
 
-### Phase 1: MVP
+### Phase 1: MVP ✅
 
 **Goal**: 기본 패스워드 생성 및 복사
 
 - [x] 프로젝트 셋업 (모노레포, Nix flake)
 - [x] `@tskey/core` 패키지
-  - [x] PBKDF2 + AES-CTR DRBG 구현
+  - [x] PBKDF2 + AES-CTR DRBG 구현 (password-only mode)
+  - [x] HKDF + AES-CTR DRBG 구현 (seed mode)
+  - [x] Seed 생성 & 암호화 (AES-GCM)
   - [x] 패스워드 생성 로직
   - [x] Realm 추출 (tldts)
-  - [x] 테스트 (65 tests passing)
-- [ ] Extension 기본 구조 (WXT)
-  - [ ] Service Worker (세션 관리)
-  - [ ] Popup UI (잠금해제 → 패스워드 생성 → 복사)
-- [ ] 기본 스토리지 (사이트별 설정)
+  - [x] 테스트 (82 tests passing)
+- [x] Extension 기본 구조 (WXT)
+  - [x] Service Worker (세션 관리 + seed 지원)
+  - [x] Popup UI (잠금해제/Seed 설정 → 패스워드 생성 → 복사)
+  - [x] Domain 기반 아키텍처 (Feature-Sliced Design)
 
-### Phase 2: Usability
+### Phase 2: Usability ✅
 
 **Goal**: 실사용 가능한 수준
 
-- [ ] Content Script (폼 감지, 자동입력)
+- [x] Content Script (폼 감지, 자동입력)
+- [x] Inline dropdown (Shadow DOM)
 - [ ] 사이트별 커스텀 설정 UI
 - [ ] 키보드 단축키
 - [ ] 아이콘 및 뱃지 (잠금 상태 표시)
@@ -617,4 +636,4 @@ nix develop --command pnpm typecheck
 
 ---
 
-_Last Updated: 2024-11_
+_Last Updated: 2025-11_
