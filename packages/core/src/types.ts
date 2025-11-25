@@ -10,6 +10,7 @@ export interface PasswordSpec {
 export interface GenerateOptions {
   masterPassword: string;
   realm: string;
+  seed?: Uint8Array;
   spec?: Partial<PasswordSpec>;
 }
 
