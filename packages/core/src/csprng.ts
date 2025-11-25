@@ -36,7 +36,13 @@ export async function createDRNGWithSeed(seed: Uint8Array, realm: string): Promi
   salt.set(seed.slice(0, 12), 0);
   salt.set(seed.slice(seed.length - 16), 12);
 
-  const keyMaterial = await crypto.subtle.importKey('raw', seed, 'HKDF', false, ['deriveBits']);
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    seed.buffer as ArrayBuffer,
+    'HKDF',
+    false,
+    ['deriveBits'],
+  );
 
   const derivedBits = await crypto.subtle.deriveBits(
     {

@@ -65,7 +65,7 @@ async function deriveMasterKey(password: string, salt: Uint8Array): Promise<Cryp
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt.buffer as ArrayBuffer,
       iterations: PBKDF2_ITERATIONS,
       hash: 'SHA-256',
     },
