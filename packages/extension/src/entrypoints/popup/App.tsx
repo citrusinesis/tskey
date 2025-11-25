@@ -25,7 +25,13 @@ function App() {
           onLock={session.lock}
         />
       ) : (
-        <UnlockPage onUnlock={session.unlock} isLoading={session.isLoading} error={session.error} />
+        <UnlockPage
+          hasSeed={session.hasSeed}
+          onUnlock={session.unlock}
+          onSetupSeed={session.setupSeed}
+          isLoading={session.isLoading}
+          error={session.error}
+        />
       )}
     </div>
   );

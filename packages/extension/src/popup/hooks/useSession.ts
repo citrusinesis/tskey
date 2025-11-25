@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { getStatus, lock as sendLock, unlock as sendUnlock } from '../../messaging';
+import {
+  getStatus,
+  lock as sendLock,
+  setupSeed as sendSetupSeed,
+  unlock as sendUnlock,
+} from '../../messaging';
 
 type SessionState = {
   isUnlocked: boolean;
+  hasSeed: boolean;
   isLoading: boolean;
   error: string | null;
 };
@@ -11,6 +17,7 @@ type SessionState = {
 export function useSession() {
   const [state, setState] = useState<SessionState>({
     isUnlocked: false,
+    hasSeed: false,
     isLoading: true,
     error: null,
   });
@@ -21,6 +28,7 @@ export function useSession() {
       setState((prev) => ({
         ...prev,
         isUnlocked: response.data.isUnlocked,
+        hasSeed: response.data.hasSeed,
         isLoading: false,
       }));
     }
@@ -34,7 +42,21 @@ export function useSession() {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     const response = await sendUnlock(password);
     if (response.success) {
-      setState({ isUnlocked: true, isLoading: false, error: null });
+      setState((prev) => ({ ...prev, isUnlocked: true, isLoading: false, error: null }));
+    } else {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: response.error,
+      }));
+    }
+  }, []);
+
+  const setupSeed = useCallback(async (password: string) => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    const response = await sendSetupSeed(password);
+    if (response.success) {
+      setState((prev) => ({ ...prev, isUnlocked: true, hasSeed: true, isLoading: false, error: null }));
     } else {
       setState((prev) => ({
         ...prev,
@@ -46,12 +68,13 @@ export function useSession() {
 
   const lock = useCallback(async () => {
     await sendLock();
-    setState({ isUnlocked: false, isLoading: false, error: null });
+    setState((prev) => ({ ...prev, isUnlocked: false, isLoading: false, error: null }));
   }, []);
 
   return {
     ...state,
     unlock,
+    setupSeed,
     lock,
     checkStatus,
   };
