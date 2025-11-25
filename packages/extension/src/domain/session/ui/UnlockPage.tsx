@@ -1,15 +1,25 @@
 import { useState } from 'react';
 
 import { PasswordInput } from '../../../components';
+import type { UnlockMethod } from '../../messaging';
 
 type Props = {
+  unlockMethod: UnlockMethod;
   onUnlock: (password: string) => void;
+  onUnlockWithPrf: () => void;
   onImport: (seed: Uint8Array, password: string) => void;
   isLoading: boolean;
   error: string | null;
 };
 
-export function UnlockPage({ onUnlock, onImport, isLoading, error }: Props) {
+export function UnlockPage({
+  unlockMethod,
+  onUnlock,
+  onUnlockWithPrf,
+  onImport,
+  isLoading,
+  error,
+}: Props) {
   const [password, setPassword] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [importPassword, setImportPassword] = useState('');
@@ -90,6 +100,37 @@ export function UnlockPage({ onUnlock, onImport, isLoading, error }: Props) {
         >
           Back to unlock
         </button>
+      </div>
+    );
+  }
+
+  if (unlockMethod === 'prf') {
+    return (
+      <div className="space-y-4">
+        <div className="rounded bg-green-50 p-3 text-xs text-green-700">
+          Use biometric authentication to unlock.
+        </div>
+
+        <button
+          type="button"
+          onClick={onUnlockWithPrf}
+          disabled={isLoading}
+          className="w-full rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          {isLoading ? 'Authenticating...' : 'Unlock with Biometrics'}
+        </button>
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
+
+        <div className="border-t pt-3">
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="w-full text-xs text-gray-500 hover:text-gray-700"
+          >
+            Lost access? Import seed file
+          </button>
+        </div>
       </div>
     );
   }
