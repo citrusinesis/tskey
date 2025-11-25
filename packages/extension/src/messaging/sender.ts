@@ -1,4 +1,11 @@
-import type { GenerateResult, Message, RealmResult, Response, SessionStatus } from './types';
+import type {
+  GenerateResult,
+  HasSeedResult,
+  Message,
+  RealmResult,
+  Response,
+  SessionStatus,
+} from './types';
 
 export async function sendMessage<T>(message: Message): Promise<Response<T>> {
   return chrome.runtime.sendMessage(message);
@@ -22,6 +29,14 @@ export async function generate(realm: string): Promise<Response<GenerateResult>>
 
 export async function getCurrentRealm(): Promise<Response<RealmResult>> {
   return sendMessage({ type: 'GET_CURRENT_REALM' });
+}
+
+export async function setupSeed(password: string): Promise<Response<void>> {
+  return sendMessage({ type: 'SETUP_SEED', payload: { password } });
+}
+
+export async function hasSeed(): Promise<Response<HasSeedResult>> {
+  return sendMessage({ type: 'HAS_SEED' });
 }
 
 export async function sendFillToTab(tabId: number, password: string): Promise<Response<void>> {
