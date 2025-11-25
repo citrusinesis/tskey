@@ -70,6 +70,35 @@ export async function unlockSessionWithPrf(): Promise<void> {
   unlock(password, seed);
 }
 
+export async function setupSessionWithPrfKey(
+  prfKey: Uint8Array,
+  credentialId: string,
+  salt: string,
+): Promise<void> {
+  const seed = await generateSeed();
+  const encryptedSeed = await encryptWithKey(seed, prfKey);
+
+  await setEncryptedSeed(encryptedSeed);
+  await setSeedExported(false);
+  await setUnlockMethod('prf');
+  await setPrfConfig({ credentialId, salt });
+
+  const password = prfKeyToPassword(prfKey);
+  unlock(password, seed);
+}
+
+export async function unlockSessionWithPrfKey(prfKey: Uint8Array): Promise<void> {
+  const encryptedSeed = await getEncryptedSeed();
+  if (encryptedSeed === null) {
+    throw new Error('No seed found');
+  }
+
+  const seed = await decryptWithKey(encryptedSeed, prfKey);
+  const password = prfKeyToPassword(prfKey);
+
+  unlock(password, seed);
+}
+
 export async function hasSeedStored(): Promise<boolean> {
   return hasEncryptedSeed();
 }

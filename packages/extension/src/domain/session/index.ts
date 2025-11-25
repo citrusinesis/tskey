@@ -10,6 +10,8 @@ export {
   markSeedExported,
   setupSeed,
   setupSessionWithPrf,
+  setupSessionWithPrfKey,
   unlockSession,
   unlockSessionWithPrf,
+  unlockSessionWithPrfKey,
 } from './service';
