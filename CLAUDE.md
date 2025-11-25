@@ -172,7 +172,7 @@ Background → Content: { type: 'FILL', payload: { password } }
 #### Later
 - [x] Options page (settings UI)
 - [x] Auto-lock timer implementation (Chrome alarms API)
-- [ ] E2E tests for extension
+- [x] E2E tests for extension (Playwright)
 
 ## Commands
 
@@ -198,6 +198,10 @@ nix develop --command pnpm build
 ```bash
 # Run all core tests (82 tests)
 nix develop --command pnpm --filter @tskey/core test
+
+# Run extension E2E tests (requires build first)
+nix develop --command pnpm --filter @tskey/extension build
+nix develop --command pnpm --filter @tskey/extension test:e2e
 ```
 
 Test files in `packages/core/test/`:
@@ -205,6 +209,10 @@ Test files in `packages/core/test/`:
 - `charset.test.ts` - Charset constants, rejection sampling
 - `password.test.ts` - Password generation, spec compliance
 - `realm.test.ts` - URL parsing, eTLD+1 extraction, custom mappings
+
+E2E test files in `packages/extension/e2e/`:
+- `popup.spec.ts` - Setup, unlock, password generation flows
+- `options.spec.ts` - Settings page interactions
 
 ## References
 
